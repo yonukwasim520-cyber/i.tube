@@ -209,9 +209,12 @@ pluginManager.loadPlugins();
 
 app.get("/", (req,res)=>{
 
-
-    res.redirect("/web");
-
+    res.sendFile(
+        path.join(
+            __dirname,
+            "plugins/web/frontend/index.html"
+        )
+    );
 
 });
 
@@ -267,8 +270,4 @@ app.listen(
 
     }
 
-<<<<<<< HEAD
 );
-=======
-);
->>>>>>> 4913dbc (Add Google verification)
