@@ -76,9 +76,147 @@ module.exports = {
         await accountsDatabase.initDatabase();
 
 
+api.registerRoute(
+    "/videos/owner",
+    "GET",
+    api.auth,
+
+    async(req,res)=>{
+
+        await database.db.read();
+
+        const videos =
+        database.db.data.videos || [];
 
 
+        const myVideos =
+        videos.filter(
+            v => v.owner_id == req.user.id
+        );
 
+
+        res.json({
+            success:true,
+            videos:myVideos
+        });
+
+    }
+);
+
+api.registerRoute(
+    "/videos/edit/:id",
+    "POST",
+    api.auth,
+
+    async(req,res)=>{
+
+        await database.db.read();
+
+
+        const video =
+        database.db.data.videos.find(
+            v => v.id == req.params.id
+        );
+
+
+        if(!video){
+
+            return res.json({
+                success:false,
+                error:"Video not found"
+            });
+
+        }
+
+
+        if(video.owner_id != req.user.id){
+
+            return res.status(403).json({
+                success:false,
+                error:"Not owner"
+            });
+
+        }
+
+
+        video.title =
+        req.body.title || video.title;
+
+
+        video.description =
+        req.body.description || video.description;
+
+
+        video.privacy =
+        req.body.privacy || video.privacy;
+
+
+        await database.db.write();
+
+
+        res.json({
+            success:true,
+            video
+        });
+
+
+    }
+);
+
+api.registerRoute(
+    "/videos/remove/:id",
+    "POST",
+    api.auth,
+
+    async(req,res)=>{
+
+
+        await database.db.read();
+
+
+        const index =
+        database.db.data.videos.findIndex(
+            v => v.id == req.params.id
+        );
+
+
+        if(index === -1){
+
+            return res.json({
+                success:false,
+                error:"Video not found"
+            });
+
+        }
+
+
+        const video =
+        database.db.data.videos[index];
+
+
+        if(video.owner_id != req.user.id){
+
+            return res.status(403).json({
+                success:false,
+                error:"Not owner"
+            });
+
+        }
+
+
+        database.db.data.videos.splice(index,1);
+
+
+        await database.db.write();
+
+
+        res.json({
+            success:true
+        });
+
+
+    }
+);
 
         // =========================
 // Upload Video
@@ -413,11 +551,10 @@ api.registerRoute(
 
     async(req,res)=>{
 
-        await db.read();
+        await videosDatabase.db.read();
 
-
-        const videos =
-        db.data.videos.filter(
+const videos =
+videosDatabase.db.data.videos || [];
 
             v=>v.owner_id == req.user.id
 
