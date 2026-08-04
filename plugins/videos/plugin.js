@@ -553,13 +553,10 @@ api.registerRoute(
 
         await videosDatabase.db.read();
 
-const videos =
-videosDatabase.db.data.videos || [];
-
-            v=>v.owner_id == req.user.id
-
+        const videos =
+        (videosDatabase.db.data.videos || []).filter(
+            v => v.owner_id == req.user.id
         );
-
 
         res.json({
 
@@ -569,8 +566,8 @@ videosDatabase.db.data.videos || [];
 
         });
 
-
     }
+
 );
 
 api.registerRoute(
