@@ -243,11 +243,17 @@ Clone the project:
 git clone https://github.com/yonukwasim520-cyber/i.tube.git
 ```
 Install dependencies:
+```bash
 npm install
+```
 Start server:
+```bash
 node server.js
+```
 The server runs on:
-http://localhost:5900
+```bash
+http://127.0.0.1:5900
+```
 Educational Purpose
 i.Tube is created for learning and experimentation.
 It is not intended to replace commercial platforms, but to demonstrate how large video platforms are built step by step.
