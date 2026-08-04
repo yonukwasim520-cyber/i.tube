@@ -240,7 +240,8 @@ Possible upgrades:
 Clone the project:
 
 ```bash
-git clone YOUR_REPOSITORY_URL
+git clone https://github.com/yonukwasim520-cyber/i.tube.git
+```
 Install dependencies:
 npm install
 Start server:
