@@ -8,17 +8,23 @@ const EventManager = require("./core/events/event_manager");
 
 const app = express();
 
+
 app.use(express.json());
 
 
+
 const events = new EventManager();
+
 
 
 const JWT_SECRET = "VideoPlatformSecretKey";
 
 
 
+
+
 const api = {
+
 
 
     registerRoute(route, method, ...handlers){
@@ -26,25 +32,31 @@ const api = {
 
         if(method === "GET"){
 
+
             app.get(
                 route,
                 ...handlers
             );
 
+
         }
 
 
+
         if(method === "POST"){
+
 
             app.post(
                 route,
                 ...handlers
             );
 
+
         }
 
 
     },
+
 
 
 
@@ -65,6 +77,7 @@ const api = {
         );
 
 
+
         app.use(
 
             "/" + folder,
@@ -80,7 +93,7 @@ const api = {
 
 
 
-    // Middleware المصادقة
+
     auth(req,res,next){
 
 
@@ -138,8 +151,7 @@ const api = {
 
 
 
-        }
-        catch(error){
+        }catch(error){
 
 
 
@@ -161,6 +173,7 @@ const api = {
 
 
 
+
     jwt: jwt,
 
 
@@ -177,8 +190,11 @@ const api = {
 
 
 
+
+
 const pluginManager =
 new PluginManager(api);
+
 
 
 pluginManager.loadPlugins();
@@ -187,42 +203,59 @@ pluginManager.loadPlugins();
 
 
 
+
+
+// تحويل الصفحة الرئيسية إلى الموقع
+
 app.get("/", (req,res)=>{
 
 
-    res.send(
-
-        "Video Platform Core Running"
-
-    );
+    res.redirect("/web");
 
 
 });
 
 
+
+
+
+
+
+
+// ملفات الصور والفيديوهات
+
 app.use(
+
     "/uploads",
+
     express.static(
-        path.join(__dirname,"uploads")
+
+        path.join(
+
+            __dirname,
+
+            "uploads"
+
+        )
+
     )
+
 );
+
+
+
+
+
+
 
 
 const server =
+
 app.listen(
+
     5900,
+
     ()=>{
-
-
-app.use(
-"/web",
-express.static(
-path.join(
-__dirname,
-"plugins/web/frontend"
-)
-)
-);
 
 
         console.log(
@@ -233,4 +266,5 @@ __dirname,
 
 
     }
+
 );
