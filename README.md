@@ -1,3 +1,10 @@
+![Logo](logo.png)
+
+
+
+
+
+
 # i.Tube 🎬
 
 A full-stack video platform built from scratch using Node.js.
