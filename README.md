@@ -242,6 +242,10 @@ Clone the project:
 ```bash
 git clone https://github.com/yonukwasim520-cyber/i.tube.git
 ```
+Accessing the tool folder
+```bash
+cd i.Tube
+```
 Install dependencies:
 ```bash
 npm install
