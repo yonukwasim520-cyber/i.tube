@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>i.Tube Security</title>
+</head>
+
+
+<body>
+
+
+<h1>Security</h1>
+
+
+<button onclick="setup()">
+Enable Google Authenticator
+</button>
+
+
+<div id="box"></div>
+
+
+
+<script>
+
+
+async function setup(){
+
+
+let res =
+await fetch("/accounts/2fa/setup",{
+
+method:"POST",
+
+headers:{
+
+Authorization:
+"Bearer "+localStorage.token
+
+}
+
+
+});
+
+
+let data =
+await res.json();
+
+
+
+document.getElementById("box").innerHTML=`
+
+<h3>Scan QR</h3>
+
+<img src="${data.qr}" width="250">
+
+
+<h3>Manual Key</h3>
+
+<p>${data.secret}</p>
+
+
+<br>
+
+<input id="code"
+placeholder="Enter code">
+
+
+<button onclick="enable()">
+Confirm
+</button>
+
+`;
+
+
+
+}
+
+
+
+async function enable(){
+
+
+let res =
+await fetch("/accounts/2fa/enable",{
+
+method:"POST",
+
+
+headers:{
+
+"Content-Type":"application/json",
+
+Authorization:
+"Bearer "+localStorage.token
+
+},
+
+
+body:JSON.stringify({
+
+code:
+document.getElementById("code").value
+
+})
+
+
+});
+
+
+
+let data =
+await res.json();
+
+
+alert(JSON.stringify(data));
+
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

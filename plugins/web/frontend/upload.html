@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Upload Video - i.Tube</title>
+
+<style>
+
+body{
+
+    margin:0;
+    font-family:Arial;
+    background:#111;
+    color:white;
+}
+
+
+header{
+
+    background:#181818;
+    padding:20px;
+    font-size:28px;
+    font-weight:bold;
+    color:red;
+
+}
+
+
+.container{
+
+    max-width:500px;
+    margin:50px auto;
+    background:#222;
+    padding:25px;
+    border-radius:15px;
+
+}
+
+
+input,textarea,select{
+
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    border:none;
+    border-radius:8px;
+    background:#333;
+    color:white;
+
+}
+
+
+textarea{
+
+    height:100px;
+
+}
+
+
+button{
+
+    width:100%;
+    padding:14px;
+    background:red;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:18px;
+
+}
+
+
+#result{
+
+    margin-top:20px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<header>
+
+i.Tube
+
+</header>
+
+
+
+<div class="container">
+
+
+<h2>
+Upload Video
+</h2>
+
+
+
+<input 
+id="title"
+placeholder="Video title">
+
+
+
+<textarea
+id="description"
+placeholder="Description"></textarea>
+
+
+
+<select id="privacy">
+
+<option value="public">
+Public
+</option>
+
+
+<option value="private">
+Private
+</option>
+
+
+</select>
+
+
+
+<input
+id="video"
+type="file"
+accept="video/*">
+
+
+
+<button onclick="upload()">
+
+Upload
+
+</button>
+
+
+
+<p id="result"></p>
+
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+async function upload(){
+
+
+
+let token =
+localStorage.token;
+
+
+
+if(!token){
+
+
+document.getElementById("result").innerHTML =
+"Please login first";
+
+
+return;
+
+
+}
+
+
+
+
+let file =
+document.getElementById("video").files[0];
+
+
+
+if(!file){
+
+
+document.getElementById("result").innerHTML =
+"Select video";
+
+
+return;
+
+
+}
+
+
+
+
+
+let form =
+new FormData();
+
+
+
+form.append(
+"video",
+file
+);
+
+
+
+form.append(
+"title",
+document.getElementById("title").value
+);
+
+
+
+form.append(
+"description",
+document.getElementById("description").value
+);
+
+
+
+form.append(
+"privacy",
+document.getElementById("privacy").value
+);
+
+
+
+
+
+
+let res =
+await fetch("/videos/upload",{
+
+
+method:"POST",
+
+
+
+headers:{
+
+
+"Authorization":
+"Bearer "+token
+
+
+},
+
+
+
+body:form
+
+
+
+});
+
+
+
+
+
+let data =
+await res.json();
+
+
+
+
+document.getElementById("result").innerHTML =
+JSON.stringify(data);
+
+
+
+
+
+if(data.success){
+
+
+setTimeout(()=>{
+
+
+location.href="index.html";
+
+
+},1500);
+
+
+}
+
+
+
+
+}
+
+
+
+</script>
+
+
+</body>
+
+
+</html>

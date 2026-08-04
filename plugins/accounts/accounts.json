@@ -1,0 +1,21 @@
+{
+  "users": [
+    {
+      "id": 1785736687110,
+      "username": "test",
+      "password": "1234",
+      "created_at": "2026-08-03T05:58:07.110Z"
+    }
+  ],
+  "channels": [
+    {
+      "id": 1785736737483,
+      "user_id": 1785736687110,
+      "name": "My Channel",
+      "description": "First channel",
+      "image": "",
+      "link": "",
+      "created_at": "2026-08-03T05:58:57.483Z"
+    }
+  ]
+}

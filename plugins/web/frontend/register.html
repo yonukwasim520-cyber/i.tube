@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>i.Tube Register</title>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+
+
+.box{
+
+    background:#222;
+    width:350px;
+    max-width:90%;
+    margin:50px auto;
+    padding:25px;
+    border-radius:15px;
+
+}
+
+
+input{
+
+    width:90%;
+    padding:12px;
+    margin:8px;
+    border-radius:8px;
+    border:none;
+
+}
+
+
+button{
+
+    width:95%;
+    padding:12px;
+    background:red;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+
+}
+
+
+#setup{
+
+    display:none;
+
+}
+
+
+img{
+
+    width:220px;
+    background:white;
+    padding:10px;
+
+}
+
+
+.secret{
+
+    background:#333;
+    padding:10px;
+    word-break:break-all;
+    border-radius:8px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="box">
+
+
+<h1>
+i.Tube
+</h1>
+
+
+<h2>
+Create Account
+</h2>
+
+
+
+<input id="username"
+placeholder="Username">
+
+
+
+<input id="password"
+type="password"
+placeholder="Password">
+
+
+
+<h3>
+Enable Two Factor Authentication?
+</h3>
+
+
+
+<label>
+
+<input type="radio"
+name="twofa"
+value="yes">
+
+Yes
+
+</label>
+
+
+
+<label>
+
+<input type="radio"
+name="twofa"
+value="no"
+checked>
+
+No
+
+</label>
+
+
+
+<br><br>
+
+
+
+<button onclick="register()">
+
+Create Account
+
+</button>
+
+
+
+<p id="result"></p>
+
+
+
+
+<div id="setup">
+
+
+<h2>
+Google Authenticator Setup
+</h2>
+
+
+
+<p>
+Scan QR Code
+</p>
+
+
+
+<img id="qr">
+
+
+
+<p>
+Or enter manually:
+</p>
+
+
+<div class="secret" id="secret"></div>
+
+
+
+<p>
+Save this key. You will need it for login.
+</p>
+
+
+
+</div>
+
+
+
+</div>
+
+
+
+
+<script>
+
+
+async function register(){
+
+
+
+let twoFA =
+
+document.querySelector(
+'input[name="twofa"]:checked'
+).value === "yes";
+
+
+
+
+
+let response =
+
+await fetch("/accounts/register",{
+
+
+method:"POST",
+
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+
+body:JSON.stringify({
+
+
+username:
+document.getElementById("username").value,
+
+
+password:
+document.getElementById("password").value,
+
+
+enable2FA:twoFA
+
+
+
+})
+
+
+});
+
+
+
+
+let data =
+await response.json();
+
+
+
+
+
+if(data.success){
+
+
+
+document.getElementById("result")
+.innerHTML =
+"Account created successfully";
+
+
+
+
+if(data.qr){
+
+
+
+document.getElementById("setup")
+.style.display="block";
+
+
+
+document.getElementById("qr")
+.src=data.qr;
+
+
+
+document.getElementById("secret")
+.innerText=data.secret;
+
+
+
+}
+
+
+
+}else{
+
+
+document.getElementById("result")
+.innerHTML=data.error;
+
+
+}
+
+
+
+
+}
+
+
+
+</script>
+
+
+
+</body>
+
+</html>

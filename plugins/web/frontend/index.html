@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>i.Tube</title>
+
+<style>
+
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#111;
+    color:white;
+}
+
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    background:#181818;
+}
+
+
+.logo{
+    font-size:30px;
+    font-weight:bold;
+    color:red;
+}
+
+
+button{
+    padding:12px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    margin:5px;
+}
+
+
+.login{
+    background:#333;
+    color:white;
+}
+
+
+.register{
+    background:red;
+    color:white;
+}
+
+
+.upload{
+    background:#2563eb;
+    color:white;
+}
+
+
+.logout{
+    background:#555;
+    color:white;
+}
+
+
+.like{
+    background:#16a34a;
+    color:white;
+}
+
+
+.dislike{
+    background:#dc2626;
+    color:white;
+}
+
+
+
+.container{
+
+    text-align:center;
+    padding:50px 20px;
+
+}
+
+
+
+.card{
+
+    background:#222;
+    padding:20px;
+    margin:20px auto;
+    border-radius:15px;
+    max-width:600px;
+
+}
+
+
+
+.video-card{
+
+    background:#222;
+    padding:15px;
+    margin:15px auto;
+    border-radius:15px;
+    max-width:600px;
+
+}
+
+
+video{
+
+    width:100%;
+    border-radius:10px;
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+
+<div class="logo">
+i.Tube
+</div>
+
+
+<div id="menu">
+
+
+<button class="login"
+onclick="location.href='login.html'">
+
+Login
+
+</button>
+
+
+<button class="register"
+onclick="location.href='register.html'">
+
+Create Account
+
+</button>
+
+
+</div>
+
+
+</header>
+
+
+
+<div class="container">
+
+
+<h1>
+Welcome to i.Tube
+</h1>
+
+
+<p>
+Watch and share videos
+</p>
+
+
+
+<div class="card">
+
+
+<h2 id="status">
+Guest
+</h2>
+
+
+<button class="upload"
+onclick="location.href='upload.html'">
+
+Upload Video
+
+</button>
+
+
+</div>
+
+
+
+<h2>
+Trending Videos
+</h2>
+
+
+<div id="videos">
+
+Loading videos...
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+async function checkUser(){
+
+
+    const token =
+    localStorage.token;
+
+
+    if(!token){
+
+        return;
+
+    }
+
+
+
+    try{
+
+
+        const res =
+        await fetch("/accounts/me",{
+
+            headers:{
+
+                "Authorization":
+                "Bearer "+token
+
+            }
+
+        });
+
+
+
+        const data =
+        await res.json();
+
+
+
+        if(data.success){
+
+
+            document.getElementById("status")
+            .innerHTML =
+            "Welcome "+data.user.username;
+
+
+
+            document.getElementById("menu").innerHTML = `
+
+
+<button class="upload"
+onclick="location.href='upload.html'">
+
+Upload Video
+
+</button>
+
+
+
+<button class="upload"
+onclick="location.href='edit-channel.html?id=${data.user.channel_id}'">
+
+Edit Channel
+
+</button>
+
+
+
+<button class="logout"
+onclick="logout()">
+
+Logout
+
+</button>
+
+
+`;
+
+
+        }
+
+
+
+    }catch(e){
+
+        console.log(e);
+
+    }
+
+
+}
+
+
+
+
+
+function logout(){
+
+    localStorage.removeItem("token");
+
+    location.reload();
+
+}
+
+
+
+function openChannel(id){
+
+    location.href =
+    "channel.html?id="+id;
+
+}
+
+
+
+async function loadVideos(){
+
+
+    const box =
+    document.getElementById("videos");
+
+
+
+    try{
+
+
+        const res =
+        await fetch("/videos/list");
+
+
+
+        const videos =
+        await res.json();
+
+
+
+        if(videos.length===0){
+
+
+            box.innerHTML =
+            "No videos yet";
+
+
+            return;
+
+        }
+
+
+
+
+        box.innerHTML="";
+
+
+
+        videos.forEach(video=>{
+
+
+
+            const div =
+            document.createElement("div");
+
+
+
+            div.className =
+            "video-card";
+
+
+
+            div.innerHTML = `
+
+
+            <video controls>
+
+            <source src="/videos/watch/${video.file}">
+
+            </video>
+
+
+
+            <h3>
+${video.title}
+</h3>
+
+<button onclick="openChannel(${video.channel_id})">
+
+Visit Channel
+
+</button>
+
+
+
+            <p>
+
+            ${video.description}
+
+            </p>
+
+
+
+            <button class="like"
+            onclick="likeVideo(${video.id})">
+
+            👍 ${video.likes ? video.likes.length : 0}
+
+            </button>
+
+
+
+
+            <button class="dislike"
+            onclick="dislikeVideo(${video.id})">
+
+            👎 ${video.dislikes ? video.dislikes.length : 0}
+
+            </button>
+
+
+
+            `;
+
+
+
+            box.appendChild(div);
+
+
+
+        });
+
+
+
+    }catch(e){
+
+
+        console.log(e);
+
+
+        box.innerHTML =
+        "Error loading videos";
+
+
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+async function likeVideo(id){
+
+
+    const token =
+    localStorage.token;
+
+
+
+    if(!token){
+
+
+        alert("Login required");
+
+        return;
+
+    }
+
+
+
+    await fetch(
+
+        "/videos/like/"+id,
+
+        {
+
+            method:"POST",
+
+            headers:{
+
+                Authorization:
+                "Bearer "+token
+
+            }
+
+        }
+
+    );
+
+
+
+    loadVideos();
+
+
+}
+
+
+
+
+
+
+
+
+
+async function dislikeVideo(id){
+
+
+    const token =
+    localStorage.token;
+
+
+
+    if(!token){
+
+
+        alert("Login required");
+
+        return;
+
+    }
+
+
+
+    await fetch(
+
+        "/videos/dislike/"+id,
+
+        {
+
+            method:"POST",
+
+            headers:{
+
+                Authorization:
+                "Bearer "+token
+
+            }
+
+        }
+
+    );
+
+
+
+    loadVideos();
+
+
+}
+
+
+
+
+
+
+
+checkUser();
+
+loadVideos();
+
+
+</script>
+
+
+</body>
+
+</html>
