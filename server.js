@@ -267,4 +267,8 @@ app.listen(
 
     }
 
+<<<<<<< HEAD
 );
+=======
+);
+>>>>>>> 4913dbc (Add Google verification)
