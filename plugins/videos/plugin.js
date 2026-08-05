@@ -406,40 +406,6 @@ api.registerRoute(
 
         }).map(video=>{
 
-
-            const channel =
-            accountsDB.data.channels.find(
-                c=>c.id == video.channel_id
-            );
-
-
-            return {
-
-                ...video,
-
-                channel_name:
-                channel ? channel.name : "Unknown",
-
-
-                subscribers:
-                channel && channel.subscribers
-                ? channel.subscribers.length
-                : 0
-
-            };
-
-
-        });
-
-
-
-        res.json(videos);
-
-
-    }
-
-);
-
     const channel =
     accountsDB.data.channels.find(
         c=>c.id == video.channel_id
