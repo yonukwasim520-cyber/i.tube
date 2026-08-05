@@ -376,16 +376,69 @@ api.registerRoute(
 
         // كل الفيديوهات
         api.registerRoute(
-            "/videos/list",
-            "GET",
+    "/videos/list",
+    "GET",
 
-            async(req,res)=>{
-
-
-                await db.read();
+    async(req,res)=>{
 
 
-                const videos = db.data.videos.map(video=>{
+        await db.read();
+
+        await accountsDB.read();
+
+
+
+        const videos =
+        db.data.videos.filter(video=>{
+
+
+            // عرض الفيديوهات العامة فقط
+            if(video.privacy === "public"){
+
+                return true;
+
+            }
+
+
+            // الفيديو الخاص لا يظهر هنا
+            return false;
+
+
+        }).map(video=>{
+
+
+            const channel =
+            accountsDB.data.channels.find(
+                c=>c.id == video.channel_id
+            );
+
+
+            return {
+
+                ...video,
+
+                channel_name:
+                channel ? channel.name : "Unknown",
+
+
+                subscribers:
+                channel && channel.subscribers
+                ? channel.subscribers.length
+                : 0
+
+            };
+
+
+        });
+
+
+
+        res.json(videos);
+
+
+    }
+
+);
 
     const channel =
     accountsDB.data.channels.find(
