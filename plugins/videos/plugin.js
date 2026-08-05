@@ -315,6 +315,8 @@ api.registerRoute(
 
     privacy: privacy || "public",
 
+    type: req.body.type || "normal",
+
     likes: [],
 
     dislikes: [],

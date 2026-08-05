@@ -67,6 +67,11 @@ button{
     color:white;
 }
 
+.delete{
+    background:#b91c1c;
+    color:white;
+}
+
 
 .like{
     background:#16a34a;
@@ -276,6 +281,13 @@ Upload Video
 </button>
 
 
+<button class="upload"
+onclick="location.href='shorts.html'">
+
+Shorts
+
+</button>
+
 
 <button class="upload"
 onclick="location.href='edit-channel.html?id=${data.user.channel_id}'">
@@ -290,6 +302,14 @@ Edit Channel
 onclick="logout()">
 
 Logout
+
+</button>
+
+
+<button class="delete"
+onclick="location.href='delete-account.html'">
+
+Delete Account
 
 </button>
 
@@ -353,6 +373,11 @@ async function loadVideos(){
         await res.json();
 
 
+        const normalVideos =
+        videos.filter(
+        v=>v.type !== "short"
+         );
+
 
         if(videos.length===0){
 
@@ -372,7 +397,7 @@ async function loadVideos(){
 
 
 
-        videos.forEach(video=>{
+        normalVideos.forEach(video=>{
 
 
 
@@ -408,6 +433,15 @@ Visit Channel
 </button>
 
 
+<button onclick="subscribe(${video.channel_id})">
+
+Subscribe
+
+</button>
+
+<span id="subscribers-${video.channel_id}">
+</span>
+
 
             <p>
 
@@ -418,21 +452,25 @@ Visit Channel
 
 
             <button class="like"
-            onclick="likeVideo(${video.id})">
+onclick="likeVideo(${video.id})">
 
-            👍 ${video.likes ? video.likes.length : 0}
+👍 <span id="likes-${video.id}">
+${video.likes ? video.likes.length : 0}
+</span>
 
-            </button>
+</button>
 
 
 
 
             <button class="dislike"
-            onclick="dislikeVideo(${video.id})">
+onclick="dislikeVideo(${video.id})">
 
-            👎 ${video.dislikes ? video.dislikes.length : 0}
+👎 <span id="dislikes-${video.id}">
+${video.dislikes ? video.dislikes.length : 0}
+</span>
 
-            </button>
+</button>
 
 
 
@@ -474,52 +512,45 @@ Visit Channel
 
 async function likeVideo(id){
 
-
-    const token =
-    localStorage.token;
-
-
+    const token = localStorage.token;
 
     if(!token){
-
-
         alert("Login required");
-
         return;
-
     }
 
 
+    const res =
+    await fetch("/videos/like/"+id,{
 
-    await fetch(
+        method:"POST",
 
-        "/videos/like/"+id,
-
-        {
-
-            method:"POST",
-
-            headers:{
-
-                Authorization:
-                "Bearer "+token
-
-            }
-
+        headers:{
+            Authorization:
+            "Bearer "+token
         }
 
-    );
+    });
 
 
+    const data =
+    await res.json();
 
-    loadVideos();
 
+    if(data.success){
+
+        document.getElementById(
+            "likes-"+id
+        ).innerHTML =
+        data.likes;
+
+    }else{
+
+        alert(data.error);
+
+    }
 
 }
-
-
-
-
 
 
 
@@ -527,14 +558,180 @@ async function likeVideo(id){
 
 async function dislikeVideo(id){
 
+    const token = localStorage.token;
+
+    if(!token){
+        alert("Login required");
+        return;
+    }
+
+
+    const res =
+    await fetch("/videos/dislike/"+id,{
+
+        method:"POST",
+
+        headers:{
+            Authorization:
+            "Bearer "+token
+        }
+
+    });
+
+
+    const data =
+    await res.json();
+
+
+    if(data.success){
+
+        document.getElementById(
+            "dislikes-"+id
+        ).innerHTML =
+        data.dislikes;
+
+    }else{
+
+        alert(data.error);
+
+    }
+
+}
+
+
+
+async function deleteAccount(){
+
+    const password =
+    prompt("Enter your password");
+
+
+    if(!password){
+        return;
+    }
+
+
+    let code = null;
+
+
+    try{
+
+        const userRes =
+        await fetch("/accounts/me",{
+
+            headers:{
+                "Authorization":
+                "Bearer "+localStorage.token
+            }
+
+        });
+
+
+        const userData =
+        await userRes.json();
+
+
+
+        if(
+            userData.success &&
+            userData.user.twoFA === true
+        ){
+
+            code =
+            prompt("Enter your authentication code");
+
+
+            if(!code){
+                return;
+            }
+
+        }
+
+
+
+    }catch(error){
+
+        alert("Failed to check account security");
+        return;
+
+    }
+
+
+
+    const confirmDelete =
+    confirm(
+        "Are you sure you want to delete your account?"
+    );
+
+
+    if(!confirmDelete){
+        return;
+    }
+
+
+
+    const res =
+    await fetch("/accounts/delete",{
+
+        method:"POST",
+
+        headers:{
+
+            "Content-Type":
+            "application/json",
+
+            "Authorization":
+            "Bearer "+localStorage.token
+
+        },
+
+
+        body:JSON.stringify({
+
+            password:password,
+
+            code:code
+
+        })
+
+    });
+
+
+
+    const data =
+    await res.json();
+
+
+
+    if(data.success){
+
+        alert(
+            "Account deleted successfully"
+        );
+
+
+        localStorage.removeItem("token");
+
+        location.reload();
+
+
+    }else{
+
+        alert(data.error);
+
+    }
+
+
+}
+
+
+async function subscribe(id){
 
     const token =
     localStorage.token;
 
 
-
     if(!token){
-
 
         alert("Login required");
 
@@ -544,9 +741,10 @@ async function dislikeVideo(id){
 
 
 
+    const res =
     await fetch(
 
-        "/videos/dislike/"+id,
+        "/channels/subscribe/"+id,
 
         {
 
@@ -554,7 +752,7 @@ async function dislikeVideo(id){
 
             headers:{
 
-                Authorization:
+                "Authorization":
                 "Bearer "+token
 
             }
@@ -565,15 +763,33 @@ async function dislikeVideo(id){
 
 
 
-    loadVideos();
+    const data =
+    await res.json();
 
+
+
+    if(data.success){
+
+        const counter =
+        document.getElementById(
+            "subscribers-"+id
+        );
+
+
+        if(counter){
+
+            counter.innerHTML =
+            " Subscribers: "+data.subscribers;
+
+        }
+
+    }else{
+
+        alert(data.error);
+
+    }
 
 }
-
-
-
-
-
 
 
 checkUser();

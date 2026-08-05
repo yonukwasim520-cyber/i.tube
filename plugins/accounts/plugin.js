@@ -3,6 +3,7 @@ const crypto = require("crypto");
 const multer = require("multer");
 const path = require("path");
 const videosDatabase = require("../videos/database");
+const fs = require("fs");
 
 const {
     generateSecret,
@@ -540,12 +541,11 @@ api.registerRoute(
 
         res.json({
 
-            success:true,
+    success:true,
 
-            subscribers:
-            channel.subscribers.length
+    subscribers: channel.subscribers.length
 
-        });
+});
 
     }
 );
@@ -827,6 +827,287 @@ api.registerRoute(
     }
 );
 
+api.registerRoute(
+    "/accounts/delete",
+    "POST",
+    api.auth,
+
+    async(req,res)=>{
+
+        const {
+            password,
+            code
+        } = req.body;
+
+
+        await database.db.read();
+
+
+        const user =
+        database.db.data.users.find(
+            u=>u.id == req.user.id
+        );
+
+
+        if(!user){
+
+            return res.json({
+
+                success:false,
+
+                error:"User not found"
+
+            });
+
+        }
+
+
+// Delete user's channel and videos
+
+const channel =
+database.db.data.channels.find(
+    c => c.user_id == req.user.id
+);
+
+
+if(channel){
+
+
+    // Load videos database
+    const videosDatabase =
+    require("../videos/database");
+
+
+    await videosDatabase.db.read();
+
+
+
+    const userVideos =
+    videosDatabase.db.data.videos.filter(
+        v => v.channel_id == channel.id
+    );
+
+
+
+    // Delete video files
+    for(const video of userVideos){
+
+
+        const filePath =
+        path.join(
+            __dirname,
+            "../../storage/videos",
+            video.file
+        );
+
+
+        if(fs.existsSync(filePath)){
+
+            fs.unlinkSync(filePath);
+
+        }
+
+
+    }
+
+
+
+    // Remove videos from database
+
+    videosDatabase.db.data.videos =
+    videosDatabase.db.data.videos.filter(
+        v => v.channel_id != channel.id
+    );
+
+
+    await videosDatabase.db.write();
+
+
+
+    // Remove channel
+
+    database.db.data.channels =
+    database.db.data.channels.filter(
+        c => c.id != channel.id
+    );
+
+
+}
+
+
+
+// Remove user
+
+database.db.data.users =
+database.db.data.users.filter(
+    u => u.id != req.user.id
+);
+
+
+await database.db.write();
+
+
+        // Check password
+
+        if(
+            user.password !==
+            hashPassword(password)
+        ){
+
+            return res.json({
+
+                success:false,
+
+                error:"Wrong password"
+
+            });
+
+        }
+
+
+
+
+        // Check 2FA
+
+        if(user.twoFA){
+
+
+            if(!code){
+
+                return res.json({
+
+                    success:false,
+
+                    error:"Authentication code required"
+
+                });
+
+            }
+
+
+
+            const valid =
+            verifySync({
+
+                token:code,
+
+                secret:user.twoFASecret
+
+            });
+
+
+
+            if(!valid){
+
+                return res.json({
+
+                    success:false,
+
+                    error:"Invalid authentication code"
+
+                });
+
+            }
+
+
+        }
+
+
+
+
+
+        // Delete channel
+
+        if(database.db.data.channels){
+
+
+            database.db.data.channels =
+
+            database.db.data.channels.filter(
+
+                c=>c.user_id != user.id
+
+            );
+
+
+        }
+
+
+
+
+
+        // Delete user
+
+        database.db.data.users =
+
+        database.db.data.users.filter(
+
+            u=>u.id != user.id
+
+        );
+
+
+
+
+
+        await database.db.write();
+
+
+
+
+        res.json({
+
+            success:true,
+
+            message:"Account deleted"
+
+        });
+
+
+    }
+);
+
+api.registerRoute(
+    "/accounts/security",
+    "GET",
+    api.auth,
+
+    async(req,res)=>{
+
+        await database.db.read();
+
+
+        const user =
+        database.db.data.users.find(
+            u=>u.id == req.user.id
+        );
+
+
+        if(!user){
+
+            return res.json({
+
+                success:false,
+
+                error:"User not found"
+
+            });
+
+        }
+
+
+        res.json({
+
+            success:true,
+
+            twoFA:user.twoFA === true
+
+        });
+
+
+    }
+);
+
         // =========================
         // Current user
         // =========================
@@ -834,24 +1115,33 @@ api.registerRoute(
 
         api.registerRoute(
 
-            "/accounts/me",
+    "/accounts/me",
 
-            "GET",
+    "GET",
 
-            api.auth,
-
-
-            async(req,res)=>{
+    api.auth,
 
 
-                res.json({
+    async(req,res)=>{
 
-                    success:true,
 
-                    user:req.user
+        res.json({
 
-                });
+            success:true,
 
+            user:{
+
+                id:req.user.id,
+
+                username:req.user.username,
+
+                channel_id:req.user.channel_id,
+
+                twoFA:req.user.twoFA === true
+
+            }
+
+        });
 
             }
 

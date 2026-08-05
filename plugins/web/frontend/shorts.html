@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>i.Tube Shorts</title>
+
+<style>
+
+*{
+box-sizing:border-box;
+}
+
+body{
+margin:0;
+background:black;
+color:white;
+font-family:Arial;
+overflow:hidden;
+}
+
+
+#shorts{
+
+height:100vh;
+overflow-y:scroll;
+scroll-snap-type:y mandatory;
+
+}
+
+
+
+.short{
+
+height:100vh;
+width:100%;
+
+display:flex;
+justify-content:center;
+align-items:center;
+
+scroll-snap-align:start;
+
+position:relative;
+
+}
+
+
+
+.video-box{
+
+width:95%;
+height:90%;
+
+background:#111;
+
+border-radius:20px;
+
+overflow:hidden;
+
+position:relative;
+
+}
+
+
+
+.video-box video{
+
+width:100%;
+height:100%;
+
+object-fit:cover;
+
+}
+
+
+
+.info{
+
+position:absolute;
+
+bottom:20px;
+left:20px;
+right:100px;
+
+background:rgba(0,0,0,.5);
+
+padding:15px;
+
+border-radius:15px;
+
+}
+
+
+
+.actions{
+
+position:absolute;
+
+right:15px;
+bottom:120px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:15px;
+
+}
+
+
+
+.action{
+
+display:flex;
+
+flex-direction:column;
+
+align-items:center;
+
+}
+
+
+
+.actions button{
+
+width:55px;
+height:55px;
+
+border:none;
+
+border-radius:50%;
+
+background:#222;
+
+color:white;
+
+font-size:22px;
+
+}
+
+
+
+.action span{
+
+margin-top:5px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+<div id="shorts">
+Loading Shorts...
+</div>
+
+
+
+<script>
+
+
+let currentVideos=[];
+
+
+
+async function loadShorts(){
+
+
+const box =
+document.getElementById("shorts");
+
+
+try{
+
+
+const res =
+await fetch("/videos/list");
+
+
+const videos =
+await res.json();
+
+
+
+currentVideos =
+videos.filter(v=>v.type==="short");
+
+
+
+if(currentVideos.length===0){
+
+box.innerHTML="No Shorts available";
+
+return;
+
+}
+
+
+
+box.innerHTML="";
+
+
+
+currentVideos.forEach(video=>{
+
+
+let div =
+document.createElement("div");
+
+
+div.className="short";
+
+
+
+div.innerHTML=`
+
+<div class="video-box">
+
+
+<video
+src="/videos/watch/${video.file}"
+autoplay
+loop
+playsinline>
+</video>
+
+
+
+<div class="info">
+
+<h3>${video.title}</h3>
+
+<p>${video.description || ""}</p>
+
+</div>
+
+
+
+<div class="actions">
+
+
+<div class="action">
+
+<button onclick="likeVideo(${video.id},this)">
+👍
+</button>
+
+<span>
+${video.likes ? video.likes.length:0}
+</span>
+
+</div>
+
+
+
+
+<div class="action">
+
+<button onclick="dislikeVideo(${video.id},this)">
+👎
+</button>
+
+<span>
+${video.dislikes ? video.dislikes.length:0}
+</span>
+
+</div>
+
+
+
+
+<div class="action">
+
+<button onclick="openChannel(${video.channel_id})">
+👤
+</button>
+
+<span>
+Channel
+</span>
+
+</div>
+
+
+
+
+<div class="action">
+
+<button onclick="subscribe(${video.channel_id},this)">
++
+</button>
+
+<span>
+Subscribe
+</span>
+
+</div>
+
+
+
+</div>
+
+
+</div>
+
+`;
+
+
+box.appendChild(div);
+
+
+});
+
+
+
+autoPlay();
+
+
+
+}catch(e){
+
+console.log(e);
+
+box.innerHTML="Error loading Shorts";
+
+}
+
+
+}
+
+
+
+
+
+function autoPlay(){
+
+
+let vids =
+document.querySelectorAll("video");
+
+
+
+let observer =
+new IntersectionObserver(entries=>{
+
+
+entries.forEach(e=>{
+
+
+if(e.isIntersecting){
+
+e.target.play();
+
+}else{
+
+e.target.pause();
+
+}
+
+
+});
+
+
+},{threshold:.7});
+
+
+
+vids.forEach(v=>{
+
+
+v.addEventListener("ended",()=>{
+
+v.play();
+
+});
+
+
+observer.observe(v);
+
+
+});
+
+
+}
+
+
+
+
+
+
+
+async function likeVideo(id,btn){
+
+const token = localStorage.token;
+
+
+if(!token){
+
+alert("Login required");
+return;
+
+}
+
+
+const res = await fetch("/videos/like/"+id,{
+
+method:"POST",
+
+headers:{
+
+Authorization:"Bearer "+token
+
+}
+
+});
+
+
+const data = await res.json();
+
+
+if(data.success){
+
+
+btn.nextElementSibling.innerHTML =
+data.likes;
+
+
+}
+
+}
+
+
+
+
+
+
+
+async function dislikeVideo(id,btn){
+
+const token = localStorage.token;
+
+
+if(!token){
+
+alert("Login required");
+return;
+
+}
+
+
+const res = await fetch("/videos/dislike/"+id,{
+
+method:"POST",
+
+headers:{
+
+Authorization:"Bearer "+token
+
+}
+
+});
+
+
+const data = await res.json();
+
+
+if(data.success){
+
+
+btn.nextElementSibling.innerHTML =
+data.dislikes;
+
+
+}
+
+
+}
+
+
+
+
+
+
+
+async function subscribe(id,btn){
+
+
+let token =
+localStorage.token;
+
+
+if(!token){
+
+alert("Login required");
+
+return;
+
+}
+
+
+
+let res =
+await fetch("/channels/subscribe/"+id,{
+
+method:"POST",
+
+headers:{
+
+Authorization:"Bearer "+token
+
+}
+
+});
+
+
+
+let data =
+await res.json();
+
+
+
+if(data.success){
+
+
+btn.nextElementSibling.innerHTML =
+data.subscribers;
+
+
+}
+
+
+}
+
+
+
+
+
+
+function openChannel(id){
+
+location.href=
+"channel.html?id="+id;
+
+}
+
+
+
+
+loadShorts();
+
+
+</script>
+
+
+</body>
+
+</html>

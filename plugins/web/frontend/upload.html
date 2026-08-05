@@ -13,6 +13,7 @@ body{
     font-family:Arial;
     background:#111;
     color:white;
+
 }
 
 
@@ -81,7 +82,6 @@ button{
 
 </style>
 
-
 </head>
 
 
@@ -133,6 +133,22 @@ Private
 
 
 
+<select id="type">
+
+<option value="normal">
+Normal Video
+</option>
+
+
+<option value="short">
+Shorts
+</option>
+
+
+</select>
+
+
+
 <input
 id="video"
 type="file"
@@ -162,7 +178,6 @@ Upload
 
 
 async function upload(){
-
 
 
 let token =
@@ -235,6 +250,13 @@ document.getElementById("description").value
 form.append(
 "privacy",
 document.getElementById("privacy").value
+);
+
+
+
+form.append(
+"type",
+document.getElementById("type").value
 );
 
 

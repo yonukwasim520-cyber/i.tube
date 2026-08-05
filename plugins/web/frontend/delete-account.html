@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Delete Account - i.Tube</title>
+
+<style>
+
+body{
+background:#111;
+color:white;
+font-family:Arial;
+text-align:center;
+}
+
+.box{
+background:#222;
+padding:30px;
+margin:50px auto;
+max-width:350px;
+border-radius:15px;
+}
+
+input,button{
+
+width:90%;
+padding:12px;
+margin:8px;
+
+}
+
+button{
+
+background:#b91c1c;
+color:white;
+border:none;
+border-radius:8px;
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="box">
+
+<h1>
+Delete Account
+</h1>
+
+
+<input
+id="password"
+type="password"
+placeholder="Password">
+
+
+<input
+id="code"
+style="display:none"
+placeholder="Authentication Code">
+
+
+<button onclick="deleteAccount()">
+
+Delete Account
+
+</button>
+
+
+<p id="result"></p>
+
+
+</div>
+
+
+
+<script>
+
+
+let has2FA=false;
+
+
+
+async function checkSecurity(){
+
+
+const res =
+await fetch("/accounts/security",{
+
+headers:{
+
+"Authorization":
+"Bearer "+localStorage.token
+
+}
+
+});
+
+
+const data =
+await res.json();
+
+
+
+if(!data.success){
+
+location.href="login.html";
+
+return;
+
+}
+
+
+
+has2FA =
+data.twoFA;
+
+
+
+if(has2FA){
+
+document.getElementById("code")
+.style.display="block";
+
+}
+
+
+}
+
+
+
+async function deleteAccount(){
+
+
+const password =
+document.getElementById("password").value;
+
+
+const code =
+document.getElementById("code").value;
+
+
+
+if(!password){
+
+alert("Enter password");
+
+return;
+
+}
+
+
+
+if(has2FA && !code){
+
+alert("Enter authentication code");
+
+return;
+
+}
+
+
+
+const res =
+await fetch("/accounts/delete",{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":
+"application/json",
+
+"Authorization":
+"Bearer "+localStorage.token
+
+},
+
+body:JSON.stringify({
+
+password,
+
+code
+
+})
+
+});
+
+
+
+const data =
+await res.json();
+
+
+
+if(data.success){
+
+
+alert("Account deleted successfully");
+
+
+localStorage.removeItem("token");
+
+
+location.href="index.html";
+
+
+}else{
+
+
+alert(data.error);
+
+
+}
+
+
+
+}
+
+
+
+checkSecurity();
+
+
+</script>
+
+
+</body>
+
+</html>
