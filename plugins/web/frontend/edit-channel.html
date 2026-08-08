@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Edit Channel - i.Tube</title>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:Arial;
+    margin:0;
+}
+
+.container{
+    max-width:700px;
+    margin:30px auto;
+    background:#222;
+    padding:20px;
+    border-radius:15px;
+}
+
+input,textarea,select{
+
+    width:100%;
+    padding:12px;
+    margin:10px 0;
+    background:#333;
+    color:white;
+    border:none;
+    border-radius:8px;
+
+}
+
+
+button{
+
+    padding:12px;
+    margin:5px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:red;
+    color:white;
+
+}
+
+
+.video{
+
+    background:#333;
+    padding:15px;
+    margin-top:20px;
+    border-radius:15px;
+
+}
+
+
+video{
+
+    width:100%;
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+<h2>Edit Channel</h2>
+
+
+<img id="image"
+width="150">
+
+
+
+<input id="photo" type="file" accept="image/*">
+
+
+<input id="name" placeholder="Channel name">
+
+
+<textarea id="description"
+placeholder="Description"></textarea>
+
+
+
+<button onclick="saveChannel()">
+Save Channel
+</button>
+
+
+
+<h2>
+My Videos
+</h2>
+
+
+<div id="videos">
+Loading...
+</div>
+
+
+</div>
+
+
+
+
+<script>
+
+
+const token =
+localStorage.token;
+
+
+
+async function loadChannel(){
+
+
+const res =
+await fetch("/channels/my",{
+
+headers:{
+Authorization:"Bearer "+token
+}
+
+});
+
+
+const data =
+await res.json();
+
+
+
+if(data.success){
+
+
+document.getElementById("name").value =
+data.channel.name;
+
+
+document.getElementById("description").value =
+data.channel.description;
+
+
+
+if(data.channel.image){
+
+document.getElementById("image").src =
+data.channel.image;
+
+}
+
+
+}
+
+
+}
+
+
+
+
+async function saveChannel(){
+
+
+let form =
+new FormData();
+
+
+
+form.append(
+"name",
+document.getElementById("name").value
+);
+
+
+form.append(
+"description",
+document.getElementById("description").value
+);
+
+
+
+let file =
+document.getElementById("photo").files[0];
+
+
+if(file){
+
+form.append(
+"image",
+file
+);
+
+}
+
+
+
+let res =
+await fetch("/channels/edit",{
+
+method:"POST",
+
+headers:{
+Authorization:"Bearer "+token
+},
+
+body:form
+
+});
+
+
+
+let data =
+await res.json();
+
+
+alert(JSON.stringify(data));
+
+
+loadChannel();
+
+
+}
+
+
+
+
+
+
+async function loadVideos(){
+
+
+let res =
+await fetch("/videos/owner",{
+
+headers:{
+Authorization:"Bearer "+token
+}
+
+});
+
+
+
+let data =
+await res.json();
+
+
+
+let box =
+document.getElementById("videos");
+
+
+box.innerHTML="";
+
+
+
+data.videos.forEach(video=>{
+
+
+box.innerHTML += `
+
+
+<div class="video">
+
+
+<video controls>
+
+<source src="/videos/watch/${video.file}">
+
+</video>
+
+
+
+<input id="title-${video.id}"
+value="${video.title}">
+
+
+
+<textarea id="desc-${video.id}">
+
+${video.description}
+
+</textarea>
+
+
+
+<select id="privacy-${video.id}">
+
+<option value="public"
+${video.privacy=="public"?"selected":""}>
+
+Public
+
+</option>
+
+
+<option value="private"
+${video.privacy=="private"?"selected":""}>
+
+Private
+
+</option>
+
+
+</select>
+
+
+
+
+<button onclick="updateVideo(${video.id})">
+
+Save Video
+
+</button>
+
+
+
+<button onclick="deleteVideo(${video.id})">
+
+Delete Video
+
+</button>
+
+
+
+</div>
+
+
+`;
+
+
+});
+
+
+}
+
+
+
+
+
+async function updateVideo(id){
+
+
+await fetch(
+"/videos/edit/"+id,
+{
+
+method:"POST",
+
+headers:{
+
+Authorization:
+"Bearer "+token,
+
+"Content-Type":"application/json"
+
+},
+
+
+body:JSON.stringify({
+
+title:
+document.getElementById("title-"+id).value,
+
+
+description:
+document.getElementById("desc-"+id).value,
+
+
+privacy:
+document.getElementById("privacy-"+id).value
+
+})
+
+
+});
+
+
+alert("Video updated");
+
+
+loadVideos();
+
+
+}
+
+
+
+
+async function deleteVideo(id){
+
+
+if(!confirm("Delete video?"))
+return;
+
+
+
+await fetch(
+"/videos/remove/"+id,
+{
+
+method:"POST",
+
+headers:{
+
+Authorization:
+"Bearer "+token
+
+}
+
+});
+
+
+loadVideos();
+
+
+}
+
+
+
+
+loadChannel();
+
+loadVideos();
+
+
+</script>
+
+
+</body>
+
+</html>

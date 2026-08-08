@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>i.Tube Login</title>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+
+.box{
+    background:#222;
+    padding:30px;
+    border-radius:15px;
+    margin:50px auto;
+    max-width:350px;
+}
+
+input{
+    width:90%;
+    padding:12px;
+    margin:8px;
+}
+
+button{
+    width:95%;
+    padding:12px;
+    background:red;
+    color:white;
+    border:none;
+    cursor:pointer;
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="box">
+
+
+<h1>i.Tube Login</h1>
+
+
+<input id="username" placeholder="Username">
+
+
+<input id="password" type="password" placeholder="Password">
+
+
+<input id="code" placeholder="Authenticator Code">
+
+
+<button id="loginBtn">
+Login
+</button>
+
+
+<p id="result"></p>
+
+
+</div>
+
+
+
+<script>
+
+
+document.getElementById("loginBtn")
+.addEventListener("click", login);
+
+
+
+async function login(){
+
+
+const result =
+document.getElementById("result");
+
+
+result.innerHTML="Logging in...";
+
+
+
+try{
+
+
+const response =
+await fetch("/accounts/login",{
+
+
+method:"POST",
+
+
+headers:{
+
+
+"Content-Type":"application/json"
+
+
+},
+
+
+body:JSON.stringify({
+
+
+username:
+document.getElementById("username").value,
+
+
+password:
+document.getElementById("password").value,
+
+
+code:
+document.getElementById("code").value
+
+
+})
+
+
+});
+
+
+
+const data =
+await response.json();
+
+
+
+console.log(data);
+
+
+
+if(data.success){
+
+
+localStorage.setItem(
+"token",
+data.token
+);
+
+
+result.innerHTML="Success";
+
+
+setTimeout(()=>{
+
+
+location.href="index.html";
+
+
+},500);
+
+
+
+}else{
+
+
+result.innerHTML =
+data.error;
+
+
+}
+
+
+
+}catch(error){
+
+
+console.log(error);
+
+
+result.innerHTML =
+"Connection error";
+
+
+}
+
+
+
+}
+
+
+</script>
+
+
+</body>
+
+</html>

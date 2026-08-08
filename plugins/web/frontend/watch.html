@@ -1,0 +1,692 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>i.Tube - Watch</title><style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial,sans-serif;
+}
+
+header{
+    background:#181818;
+    padding:18px 25px;
+    font-size:28px;
+    font-weight:bold;
+    color:red;
+}
+
+.container{
+    max-width:900px;
+    margin:30px auto;
+    padding:20px;
+}
+
+.player{
+    width:100%;
+    background:#000;
+    border-radius:14px;
+    overflow:hidden;
+}
+
+.player video{
+    width:100%;
+    max-height:70vh;
+    display:block;
+    background:#000;
+}
+
+.title{
+    font-size:24px;
+    margin-top:20px;
+}
+
+.description{
+    color:#ccc;
+    white-space:pre-wrap;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin:20px 0;
+}
+
+.actions button{
+    border:none;
+    border-radius:9px;
+    padding:12px 18px;
+    background:#292929;
+    color:white;
+    cursor:pointer;
+    font-size:15px;
+}
+
+.actions button:hover{
+    background:#3a3a3a;
+}
+
+.channel{
+    background:#222;
+    padding:15px;
+    border-radius:12px;
+    margin-top:20px;
+}
+
+#error{
+    text-align:center;
+    color:#ff5555;
+    padding:30px;
+}
+
+</style></head><body><header>
+i.Tube
+</header><div class="container"><div id="content">
+    Loading video...
+</div>
+
+</div><script>
+
+let videoId = null;
+let currentVideo = null;
+
+
+/* =========================
+   Get Video ID
+========================= */
+
+function getVideoId(){
+
+    const params =
+        new URLSearchParams(
+            location.search
+        );
+
+    return params.get("id");
+
+}
+
+
+/* =========================
+   Load Video
+========================= */
+
+async function loadVideo(){
+
+    videoId = getVideoId();
+
+    const content =
+        document.getElementById(
+            "content"
+        );
+
+
+    if(!videoId){
+
+        content.innerHTML = `
+            <div id="error">
+                Video not found
+            </div>
+        `;
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/videos/list"
+            );
+
+
+        const videos =
+            await res.json();
+
+
+        currentVideo =
+            videos.find(
+                v =>
+                    String(v.id) ===
+                    String(videoId)
+            );
+
+
+        if(!currentVideo){
+
+            content.innerHTML = `
+                <div id="error">
+                    Video not found
+                </div>
+            `;
+
+            return;
+
+        }
+
+
+        /* Private video protection */
+
+        if(
+            currentVideo.privacy ===
+            "private"
+        ){
+
+            const token =
+                localStorage.token;
+
+
+            if(!token){
+
+                content.innerHTML = `
+                    <div id="error">
+                        This video is private.<br>
+                        Please login first.
+                    </div>
+                `;
+
+                return;
+
+            }
+
+        }
+
+
+        content.innerHTML = `
+
+            <div class="player">
+
+                <video
+                    controls
+                    autoplay
+                    playsinline
+                >
+
+                    <source
+                        src="/videos/watch/${encodeURIComponent(
+                            currentVideo.file
+                        )}"
+                    >
+
+                </video>
+
+            </div>
+
+
+            <h1 class="title">
+                ${escapeHTML(
+                    currentVideo.title
+                )}
+            </h1>
+
+
+            <div class="description">
+                ${escapeHTML(
+                    currentVideo.description || ""
+                )}
+            </div>
+
+
+            <div class="actions">
+
+                <button
+                    type="button"
+                    onclick="likeVideo()"
+                >
+                    👍
+                    <span id="likes">
+                        ${
+                            currentVideo.likes
+                            ? currentVideo.likes.length
+                            : 0
+                        }
+                    </span>
+                </button>
+
+
+                <button
+                    type="button"
+                    onclick="dislikeVideo()"
+                >
+                    👎
+                    <span id="dislikes">
+                        ${
+                            currentVideo.dislikes
+                            ? currentVideo.dislikes.length
+                            : 0
+                        }
+                    </span>
+                </button>
+
+
+                <button
+                    type="button"
+                    onclick="copyVideoLink()"
+                >
+                    🔗 Copy Link
+                </button>
+
+
+                <button
+                    type="button"
+                    onclick="openChannel()"
+                >
+                    👤 Channel
+                </button>
+
+            </div>
+
+
+            <div class="channel">
+
+                <b>
+                    ${escapeHTML(
+                        currentVideo.channel_name ||
+                        "Unknown Channel"
+                    )}
+                </b>
+
+                <br>
+
+                Subscribers:
+                ${currentVideo.subscribers || 0}
+
+                <br><br>
+
+                <button
+                    type="button"
+                    onclick="subscribe()"
+                >
+                    Subscribe
+                </button>
+
+            </div>
+
+        `;
+
+
+    }catch(error){
+
+        console.error(
+            "Error loading video:",
+            error
+        );
+
+
+        content.innerHTML = `
+            <div id="error">
+                Error loading video
+            </div>
+        `;
+
+    }
+
+}
+
+
+/* =========================
+   Copy Video Link
+========================= */
+
+async function copyVideoLink(){
+
+    const link =
+        window.location.origin +
+        "/watch.html?id=" +
+        encodeURIComponent(
+            videoId
+        );
+
+
+    try{
+
+        await navigator.clipboard.writeText(
+            link
+        );
+
+        alert(
+            "Video link copied!"
+        );
+
+    }catch(error){
+
+        prompt(
+            "Copy this video link:",
+            link
+        );
+
+    }
+
+}
+
+
+/* =========================
+   Like
+========================= */
+
+async function likeVideo(){
+
+    const token =
+        localStorage.token;
+
+
+    if(!token){
+
+        alert(
+            "Login required"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/videos/like/" +
+                encodeURIComponent(
+                    videoId
+                ),
+                {
+
+                    method:"POST",
+
+                    headers:{
+                        Authorization:
+                            "Bearer " +
+                            token
+                    }
+
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(data.success){
+
+            document
+                .getElementById(
+                    "likes"
+                )
+                .innerText =
+                    data.likes;
+
+
+            document
+                .getElementById(
+                    "dislikes"
+                )
+                .innerText =
+                    data.dislikes;
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to like video"
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "Like error:",
+            error
+        );
+
+        alert(
+            "Error liking video"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   Dislike
+========================= */
+
+async function dislikeVideo(){
+
+    const token =
+        localStorage.token;
+
+
+    if(!token){
+
+        alert(
+            "Login required"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/videos/dislike/" +
+                encodeURIComponent(
+                    videoId
+                ),
+                {
+
+                    method:"POST",
+
+                    headers:{
+                        Authorization:
+                            "Bearer " +
+                            token
+                    }
+
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(data.success){
+
+            document
+                .getElementById(
+                    "likes"
+                )
+                .innerText =
+                    data.likes;
+
+
+            document
+                .getElementById(
+                    "dislikes"
+                )
+                .innerText =
+                    data.dislikes;
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to dislike video"
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "Dislike error:",
+            error
+        );
+
+        alert(
+            "Error disliking video"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   Subscribe
+========================= */
+
+async function subscribe(){
+
+    const token =
+        localStorage.token;
+
+
+    if(!token){
+
+        alert(
+            "Login required"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/channels/subscribe/" +
+                encodeURIComponent(
+                    currentVideo.channel_id
+                ),
+                {
+
+                    method:"POST",
+
+                    headers:{
+                        Authorization:
+                            "Bearer " +
+                            token
+                    }
+
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(data.success){
+
+            alert(
+                "Subscribers: " +
+                data.subscribers
+            );
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to subscribe"
+            );
+
+        }
+
+    }catch(error){
+
+        console.error(
+            "Subscribe error:",
+            error
+        );
+
+        alert(
+            "Error subscribing"
+        );
+
+    }
+
+}
+
+
+/* =========================
+   Channel
+========================= */
+
+function openChannel(){
+
+    if(!currentVideo){
+
+        return;
+
+    }
+
+
+    location.href =
+        "channel.html?id=" +
+        encodeURIComponent(
+            currentVideo.channel_id
+        );
+
+}
+
+
+/* =========================
+   HTML Security
+========================= */
+
+function escapeHTML(text){
+
+    return String(text)
+
+        .replace(
+            /&/g,
+            "&amp;"
+        )
+
+        .replace(
+            /</g,
+            "&lt;"
+        )
+
+        .replace(
+            />/g,
+            "&gt;"
+        )
+
+        .replace(
+            /"/g,
+            "&quot;"
+        )
+
+        .replace(
+            /'/g,
+            "&#039;"
+        );
+
+}
+
+
+/* =========================
+   Start
+========================= */
+
+loadVideo();
+
+</script></body></html>

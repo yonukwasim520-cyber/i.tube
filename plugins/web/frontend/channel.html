@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Channel - i.Tube</title>
+
+
+<style>
+
+body{
+
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+
+}
+
+
+.container{
+
+    max-width:800px;
+    margin:30px auto;
+    padding:20px;
+
+}
+
+
+
+.channel-box{
+
+    background:#222;
+    padding:25px;
+    border-radius:15px;
+    text-align:center;
+
+}
+
+
+
+.channel-image{
+
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    object-fit:cover;
+    background:#333;
+
+}
+
+
+
+button{
+
+    padding:12px 25px;
+    background:red;
+    color:white;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    margin:10px;
+
+}
+
+
+
+.video-card{
+
+    background:#222;
+    margin-top:20px;
+    padding:15px;
+    border-radius:15px;
+
+}
+
+
+
+video{
+
+    width:100%;
+    border-radius:10px;
+
+}
+
+
+</style>
+
+
+</head>
+
+
+<body>
+
+
+
+<div class="container">
+
+
+<div id="channel">
+
+Loading channel...
+
+</div>
+
+
+
+<h2>
+Videos
+</h2>
+
+
+
+<div id="videos">
+
+Loading videos...
+
+</div>
+
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+
+const channelId =
+new URLSearchParams(location.search)
+.get("id");
+
+
+
+
+
+async function loadChannel(){
+
+
+
+const res =
+await fetch(
+"/channels/"+channelId
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(!data.success){
+
+document.getElementById("channel")
+.innerHTML =
+"Channel not found";
+
+return;
+
+}
+
+
+
+const c =
+data.channel;
+
+
+
+document.getElementById("channel")
+.innerHTML = `
+
+
+<div class="channel-box">
+
+
+
+${
+
+c.image
+
+?
+
+`
+
+<img class="channel-image"
+src="${c.image}">
+
+`
+
+:
+
+`
+
+<div class="channel-image">
+
+</div>
+
+`
+
+}
+
+
+
+
+<h1>
+
+${c.name}
+
+</h1>
+
+
+
+<p>
+
+${c.description || ""}
+
+</p>
+
+
+
+<p>
+
+Subscribers:
+
+${c.subscribers ? c.subscribers.length : 0}
+
+</p>
+
+
+
+<button onclick="subscribe(${c.id})">
+
+Subscribe
+
+</button>
+
+
+
+</div>
+
+
+
+`;
+
+
+
+}
+
+
+
+
+
+
+
+
+async function loadVideos(){
+
+
+
+const res =
+await fetch(
+"/channels/"+channelId+"/videos"
+);
+
+
+
+const data =
+await res.json();
+
+
+
+const box =
+document.getElementById("videos");
+
+
+
+if(!data.success){
+
+box.innerHTML =
+"No videos";
+
+return;
+
+}
+
+
+
+box.innerHTML="";
+
+
+
+data.videos.forEach(video=>{
+
+
+box.innerHTML += `
+
+
+<div class="video-card">
+
+
+<video controls>
+
+
+<source src="/videos/watch/${video.file}">
+
+
+</video>
+
+
+
+<h3>
+
+${video.title}
+
+</h3>
+
+
+
+<p>
+
+${video.description}
+
+</p>
+
+
+
+</div>
+
+
+`;
+
+
+
+});
+
+
+
+}
+
+
+
+
+
+
+
+async function subscribe(id){
+
+
+
+const token =
+localStorage.token;
+
+
+
+if(!token){
+
+
+alert("Login required");
+
+return;
+
+
+}
+
+
+
+
+
+const res =
+await fetch(
+
+"/channels/subscribe/"+id,
+
+{
+
+
+method:"POST",
+
+
+headers:{
+
+Authorization:
+"Bearer "+token
+
+}
+
+
+}
+
+);
+
+
+
+const data =
+await res.json();
+
+
+
+if(data.success){
+
+alert(
+"Subscribers: "+
+data.subscribers
+);
+
+
+loadChannel();
+
+}
+
+
+}
+
+
+
+
+
+
+
+loadChannel();
+
+loadVideos();
+
+
+
+</script>
+
+
+
+</body>
+
+</html>
