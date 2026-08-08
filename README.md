@@ -263,7 +263,7 @@ node server.js --host
 ```
 The server runs on:
 ```bash
-http://127.0.0.1:5900
+http://itube.local:5900
 ```
 Educational Purpose
 i.Tube is created for learning and experimentation.
