@@ -259,7 +259,7 @@ npm install
 ```
 Start server:
 ```bash
-node server.js --host
+node server.js
 ```
 The server runs on:
 ```bash
