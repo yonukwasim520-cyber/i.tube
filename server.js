@@ -11,9 +11,10 @@ const EventManager = require("./core/events/event_manager");
 // Python Agent
 // ===============================
 
-const agent = spawn("python", ["agent.py"], {
-    stdio: "inherit"
-});
+// Zeroconf agent disabled: UDP Discovery is used instead.
+// const agent = spawn("python", ["agent.py"], {
+//     stdio: "inherit"
+// });
 
 
 // ===============================
