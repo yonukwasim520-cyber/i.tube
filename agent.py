@@ -11,11 +11,8 @@ PORT = 5900
 
 def get_local_ip():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
     try:
-        # لا يحتاج اتصالًا فعليًا بالإنترنت.
-        # الهدف فقط اختيار واجهة الشبكة المحلية المناسبة.
-        sock.connect(("192.168.1.1", 80))
+        sock.connect(("8.8.8.8", 80))
         ip = sock.getsockname()[0]
     except Exception:
         ip = "127.0.0.1"
@@ -23,7 +20,6 @@ def get_local_ip():
         sock.close()
 
     return ip
-
 
 def main():
 
