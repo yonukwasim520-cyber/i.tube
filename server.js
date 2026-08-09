@@ -1,109 +1,102 @@
 const express = require("express");
 const path = require("path");
 const jwt = require("jsonwebtoken");
+const { spawn } = require("child_process");
 
 const PluginManager = require("./core/plugin_manager");
 const EventManager = require("./core/events/event_manager");
 
 
+// ===============================
+// Python Agent
+// ===============================
+
+const agent = spawn("python", ["agent.py"], {
+    stdio: "inherit"
+});
+
+
+// ===============================
+// Express
+// ===============================
+
 const app = express();
+
+// ===============================
+// LAN Discovery (mDNS)
+// ===============================
+require("./core/discovery");
 
 
 app.use(express.json());
 
 
+// ===============================
+// Events
+// ===============================
 
 const events = new EventManager();
 
 
+// ===============================
+// JWT
+// ===============================
 
 const JWT_SECRET = "VideoPlatformSecretKey";
 
 
-
-
+// ===============================
+// API
+// ===============================
 
 const api = {
 
-
-
     registerRoute(route, method, ...handlers){
 
-
         if(method === "GET"){
-
 
             app.get(
                 route,
                 ...handlers
             );
 
-
         }
 
-
-
         if(method === "POST"){
-
 
             app.post(
                 route,
                 ...handlers
             );
 
-
         }
 
-
     },
-
-
-
 
 
     addPage(folder){
 
-
         const pagePath = path.join(
-
             __dirname,
-
             "plugins",
-
             folder,
-
             "frontend"
-
         );
-
-
 
         app.use(
-
             "/" + folder,
-
             express.static(pagePath)
-
         );
-
 
     },
 
 
-
-
-
-
-    auth(req,res,next){
-
+    auth(req, res, next){
 
         const header =
-        req.headers.authorization;
-
-
+            req.headers.authorization;
 
         if(!header){
-
 
             return res.status(401).json({
 
@@ -113,47 +106,31 @@ const api = {
 
             });
 
-
         }
 
 
-
-
         const token =
-        header.replace(
-            "Bearer ",
-            ""
-        );
-
-
-
+            header.replace(
+                "Bearer ",
+                ""
+            );
 
 
         try{
 
-
             const user =
-            jwt.verify(
-
-                token,
-
-                JWT_SECRET
-
-            );
-
+                jwt.verify(
+                    token,
+                    JWT_SECRET
+                );
 
 
             req.user = user;
 
-
-
             next();
 
 
-
         }catch(error){
-
-
 
             return res.status(401).json({
 
@@ -163,51 +140,36 @@ const api = {
 
             });
 
-
         }
-
 
     },
 
 
-
-
-
-
     jwt: jwt,
-
 
     jwtSecret: JWT_SECRET,
 
-
-
     events: events
-
 
 };
 
 
-
-
-
-
+// ===============================
+// Plugin Manager
+// ===============================
 
 const pluginManager =
-new PluginManager(api);
-
+    new PluginManager(api);
 
 
 pluginManager.loadPlugins();
 
 
+// ===============================
+// Home Page
+// ===============================
 
-
-
-
-
-// تحويل الصفحة الرئيسية إلى الموقع
-
-app.get("/", (req,res)=>{
+app.get("/", (req, res)=>{
 
     res.sendFile(
         path.join(
@@ -219,33 +181,24 @@ app.get("/", (req,res)=>{
 });
 
 
-
-
-
-
-
-
-// ملفات الصور والفيديوهات
+// ===============================
+// Uploads
+// ===============================
 
 app.use(
-
     "/uploads",
-
     express.static(
-
         path.join(
-
             __dirname,
-
             "uploads"
-
         )
-
     )
-
 );
 
 
+// ===============================
+// Web Frontend
+// ===============================
 
 app.use(
     express.static(
@@ -257,26 +210,81 @@ app.use(
 );
 
 
-
+// ===============================
+// HTTP Server
+// ===============================
 
 const server =
+    app.listen(
+        5900,
+        "0.0.0.0",
+        ()=>{
 
-app.listen(
+            console.log(
+                "Server running on port 5900"
+            );
 
-    5900,
+        }
+    );
 
-    "0.0.0.0",
 
-    ()=>{
+// ===============================
+// Graceful Shutdown
+// ===============================
 
+function shutdown(){
+
+    console.log(
+        "Stopping i.Tube..."
+    );
+
+
+    // إيقاف Python Agent
+
+    try{
+
+        if(agent && !agent.killed){
+
+            agent.kill("SIGINT");
+
+        }
+
+    }catch(error){
 
         console.log(
-
-            "Server running on port 5900"
-
+            "Agent shutdown error:",
+            error.message
         );
-
 
     }
 
+
+    // إيقاف HTTP server
+
+    server.close(() => {
+
+        console.log(
+            "i.Tube server stopped"
+        );
+
+        process.exit(0);
+
+    });
+
+}
+
+
+// ===============================
+// Shutdown Signals
+// ===============================
+
+process.on(
+    "SIGINT",
+    shutdown
+);
+
+
+process.on(
+    "SIGTERM",
+    shutdown
 );

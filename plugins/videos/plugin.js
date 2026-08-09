@@ -5,43 +5,32 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-
 const db = database.db;
 const accountsDB = accountsDatabase.db;
-
-
 
 const uploadPath = path.join(
     __dirname,
     "../../storage/videos"
 );
 
-
-
-if(!fs.existsSync(uploadPath)){
-
+if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(
         uploadPath,
         {
-            recursive:true
+            recursive: true
         }
     );
-
 }
-
-
-
 
 const storage = multer.diskStorage({
 
-    destination(req,file,cb){
+    destination(req, file, cb) {
 
         cb(null, uploadPath);
 
     },
 
-
-    filename(req,file,cb){
+    filename(req, file, cb) {
 
         cb(
             null,
@@ -52,1077 +41,2190 @@ const storage = multer.diskStorage({
 
 });
 
-
-
 const upload = multer({
     storage
 });
 
 
-
-
-
 module.exports = {
 
-    name:"Videos System",
+    name: "Videos System",
 
-
-
-    async activate(api){
-
+    async activate(api) {
 
         await database.initDatabase();
-
         await accountsDatabase.initDatabase();
 
 
-api.registerRoute(
-    "/videos/owner",
-    "GET",
-    api.auth,
+        // =========================================================
+        // Owner Videos
+        // =========================================================
 
-    async(req,res)=>{
-
-        await database.db.read();
-
-        const videos =
-        database.db.data.videos || [];
-
-
-        const myVideos =
-        videos.filter(
-            v => v.owner_id == req.user.id
-        );
-
-
-        res.json({
-            success:true,
-            videos:myVideos
-        });
-
-    }
-);
-
-api.registerRoute(
-    "/videos/edit/:id",
-    "POST",
-    api.auth,
-
-    async(req,res)=>{
-
-        await database.db.read();
-
-
-        const video =
-        database.db.data.videos.find(
-            v => v.id == req.params.id
-        );
-
-
-        if(!video){
-
-            return res.json({
-                success:false,
-                error:"Video not found"
-            });
-
-        }
-
-
-        if(video.owner_id != req.user.id){
-
-            return res.status(403).json({
-                success:false,
-                error:"Not owner"
-            });
-
-        }
-
-
-        video.title =
-        req.body.title || video.title;
-
-
-        video.description =
-        req.body.description || video.description;
-
-
-        video.privacy =
-        req.body.privacy || video.privacy;
-
-
-        await database.db.write();
-
-
-        res.json({
-            success:true,
-            video
-        });
-
-
-    }
-);
-
-api.registerRoute(
-    "/videos/remove/:id",
-    "POST",
-    api.auth,
-
-    async(req,res)=>{
-
-
-        await database.db.read();
-
-
-        const index =
-        database.db.data.videos.findIndex(
-            v => v.id == req.params.id
-        );
-
-
-        if(index === -1){
-
-            return res.json({
-                success:false,
-                error:"Video not found"
-            });
-
-        }
-
-
-        const video =
-        database.db.data.videos[index];
-
-
-        if(video.owner_id != req.user.id){
-
-            return res.status(403).json({
-                success:false,
-                error:"Not owner"
-            });
-
-        }
-
-
-        database.db.data.videos.splice(index,1);
-
-
-        await database.db.write();
-
-
-        res.json({
-            success:true
-        });
-
-
-    }
-);
-
-        // =========================
-// Upload Video
-// =========================
-
-api.registerRoute(
-    "/videos/upload",
-    "POST",
-
-    api.auth,
-
-    upload.single("video"),
-
-
-    async(req,res)=>{
-
-
-        const {
-
-            title,
-
-            description,
-
-            privacy
-
-        } = req.body;
-
-
-
-        if(!req.file){
-
-            return res.json({
-
-                success:false,
-
-                error:"No video file"
-
-            });
-
-        }
-
-
-
-        await db.read();
-
-        await accountsDB.read();
-
-
-
-
-
-        // جلب قناة المستخدم تلقائياً
-
-        const channel =
-
-        accountsDB.data.channels.find(
-
-            c =>
-
-            c.user_id == req.user.id
-
-        );
-
-
-
-
-
-        if(!channel){
-
-
-            return res.status(403).json({
-
-                success:false,
-
-                error:"No channel found"
-
-            });
-
-
-        }
-
-
-        const video = {
-
-    id: Date.now(),
-
-    owner_id: req.user.id,
-
-    channel_id: channel.id,
-
-    title: title || "Untitled Video",
-
-    description: description || "",
-
-    file: req.file.filename,
-
-    privacy: privacy || "public",
-
-    type: req.body.type || "normal",
-
-    likes: [],
-
-    dislikes: [],
-
-    views: 0,
-
-    created_at: new Date().toISOString()
-
-};
-
-
-
-
-
-        if(!db.data.videos){
-
-            db.data.videos=[];
-
-        }
-
-
-
-        db.data.videos.push(video);
-
-
-
-        await db.write();
-
-
-
-
-
-        res.json({
-
-            success:true,
-
-            message:"Video uploaded",
-
-            video
-
-        });
-
-
-
-    }
-
-);
-
-
-
-
-
-
-
-
-
-
-        // كل الفيديوهات
         api.registerRoute(
-    "/videos/list",
-    "GET",
+            "/videos/owner",
+            "GET",
+            api.auth,
 
-    async(req,res)=>{
+            async (req, res) => {
 
-
-        await db.read();
-
-        await accountsDB.read();
-
-
-
-        const videos =
-        db.data.videos.filter(video=>{
-
-
-            // عرض الفيديوهات العامة فقط
-            if(video.privacy === "public"){
-
-                return true;
-
-            }
-
-
-            // الفيديو الخاص لا يظهر هنا
-            return false;
-
-
-        }).map(video=>{
-
-    const channel =
-    accountsDB.data.channels.find(
-        c=>c.id == video.channel_id
+    console.log(
+        "COMMENTS POST HIT",
+        req.params,
+        req.body,
+        req.user
     );
 
+    try {
 
-    return {
+        await db.read();
 
-        ...video,
+                    const videos =
+                        (db.data.videos || [])
+                        .filter(
+                            v =>
+                                String(v.owner_id) ===
+                                String(req.user.id)
+                        );
 
-        channel_name:
-        channel ? channel.name : "Unknown",
+                    return res.json({
 
-        subscribers:
-        channel && channel.subscribers
-        ? channel.subscribers.length
-        : 0
+                        success: true,
 
-    };
+                        videos
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Videos owner error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+    success: false,
+
+    error: "Failed to load videos"
 
 });
 
-
-res.json(videos);
-
+                }
 
             }
-
         );
 
 
-api.registerRoute(
-    "/channels/:id/videos",
-    "GET",
+        // =========================================================
+        // Edit Video
+        // =========================================================
 
-    async(req,res)=>{
+        api.registerRoute(
+            "/videos/edit/:id",
+            "POST",
+            api.auth,
 
-        await db.read();
+            async (req, res) => {
 
+                try {
 
-        const videos =
-        db.data.videos.filter(
+                    await db.read();
 
-            v=>
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
 
-            v.channel_id == req.params.id
-            &&
-            v.privacy == "public"
+                    if (!video) {
 
+                        return res.json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    if (
+                        String(video.owner_id) !==
+                        String(req.user.id)
+                    ) {
+
+                        return res.status(403).json({
+
+                            success: false,
+
+                            error: "Not owner"
+
+                        });
+
+                    }
+
+                    video.title =
+                        req.body.title ||
+                        video.title;
+
+                    video.description =
+                        req.body.description ||
+                        video.description;
+
+                    video.privacy =
+                        req.body.privacy ||
+                        video.privacy;
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        video
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video edit error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to edit video"
+
+                    });
+
+                }
+
+            }
         );
 
 
-        res.json({
+        // =========================================================
+        // Remove Video
+        // =========================================================
 
-            success:true,
+        api.registerRoute(
+            "/videos/remove/:id",
+            "POST",
+            api.auth,
 
-            videos
+            async (req, res) => {
 
-        });
+                try {
 
+                    await db.read();
 
-    }
-);
+                    const videos =
+                        db.data.videos || [];
 
+                    const index =
+                        videos.findIndex(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
 
-api.registerRoute(
-    "/videos/like/:id",
-    "POST",
+                    if (index === -1) {
 
-    api.auth,
+                        return res.status(404).json({
 
-    async(req,res)=>{
+                            success: false,
 
+                            error: "Video not found"
 
-        await db.read();
+                        });
 
+                    }
 
-        const video =
-        db.data.videos.find(
-            v =>
-            v.id == req.params.id
+                    const video =
+                        videos[index];
+
+                    if (
+                        String(video.owner_id) !==
+                        String(req.user.id)
+                    ) {
+
+                        return res.status(403).json({
+
+                            success: false,
+
+                            error: "Not owner"
+
+                        });
+
+                    }
+
+                    videos.splice(index, 1);
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video remove error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to remove video"
+
+                    });
+
+                }
+
+            }
         );
 
 
-        if(!video){
+        // =========================================================
+        // Upload Video
+        // =========================================================
 
-            return res.status(404).json({
-                error:"Video not found"
-            });
+        api.registerRoute(
+            "/videos/upload",
+            "POST",
+            api.auth,
+            upload.single("video"),
 
-        }
+            async (req, res) => {
 
+                try {
 
+                    const {
 
-        if(!video.likes){
+                        title,
+                        description,
+                        privacy
 
-            video.likes=[];
+                    } = req.body;
 
-        }
+                    if (!req.file) {
 
+                        return res.status(400).json({
 
-        if(!video.dislikes){
+                            success: false,
 
-            video.dislikes=[];
+                            error: "No video file"
 
-        }
+                        });
 
+                    }
 
+                    await db.read();
+                    await accountsDB.read();
 
-        const userId =
-        req.user.id;
+                    const channels =
+                        accountsDB.data.channels || [];
 
+                    const channel =
+                        channels.find(
+                            c =>
+                                String(c.user_id) ===
+                                String(req.user.id)
+                        );
 
+                    if (!channel) {
 
-        if(video.likes.includes(userId)){
+                        return res.status(403).json({
 
+                            success: false,
 
-            video.likes =
-            video.likes.filter(
-                id=>id != userId
-            );
+                            error: "No channel found"
 
+                        });
 
-        }else{
+                    }
 
+                    if (!Array.isArray(db.data.videos)) {
 
-            video.likes.push(userId);
+                        db.data.videos = [];
 
+                    }
 
+                    const video = {
 
-            video.dislikes =
-            video.dislikes.filter(
-                id=>id != userId
-            );
+                        id: Date.now(),
 
+                        owner_id: req.user.id,
 
-        }
+                        channel_id: channel.id,
 
+                        title:
+                            title ||
+                            "Untitled Video",
 
+                        description:
+                            description ||
+                            "",
 
-        await db.write();
+                        file:
+                            req.file.filename,
 
+                        privacy:
+                            privacy ||
+                            "public",
 
+                        type:
+                            req.body.type ||
+                            "normal",
 
-        res.json({
+                        likes: [],
 
-            success:true,
+                        dislikes: [],
 
-            likes:video.likes.length,
+                        views: 0,
 
-            dislikes:video.dislikes.length
+                        created_at:
+                            new Date().toISOString()
 
-        });
+                    };
 
+                    db.data.videos.push(video);
 
-    }
+                    await db.write();
 
-);
+                    return res.json({
 
-api.registerRoute(
-    "/videos/owner",
-    "GET",
-    api.auth,
+                        success: true,
 
-    async(req,res)=>{
+                        message: "Video uploaded",
 
-        await videosDatabase.db.read();
+                        video
 
-        const videos =
-        (videosDatabase.db.data.videos || []).filter(
-            v => v.owner_id == req.user.id
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video upload error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to upload video"
+
+                    });
+
+                }
+
+            }
         );
 
-        res.json({
 
-            success:true,
+        // =========================================================
+        // Public Videos
+        // =========================================================
 
-            videos
+        api.registerRoute(
+            "/videos/list",
+            "GET",
 
-        });
+            async (req, res) => {
 
-    }
+                try {
 
-);
+                    await db.read();
+                    await accountsDB.read();
 
-api.registerRoute(
-    "/videos/dislike/:id",
-    "POST",
+                    const videos =
+                        (db.data.videos || [])
+                        .filter(
+                            video =>
+                                video.privacy ===
+                                "public"
+                        )
+                        .map(video => {
 
-    api.auth,
+                            const channel =
+                                (accountsDB.data.channels || [])
+                                .find(
+                                    c =>
+                                        String(c.id) ===
+                                        String(video.channel_id)
+                                );
 
-    async(req,res)=>{
+                            return {
 
+                                ...video,
 
-        await db.read();
+                                channel_name:
+                                    channel
+                                        ? channel.name
+                                        : "Unknown",
 
+                                subscribers:
+                                    channel &&
+                                    Array.isArray(
+                                        channel.subscribers
+                                    )
+                                        ? channel.subscribers.length
+                                        : 0
 
-        const video =
-        db.data.videos.find(
-            v =>
-            v.id == req.params.id
+                            };
+
+                        });
+
+                    return res.json(videos);
+
+                } catch (error) {
+
+                    console.error(
+                        "Videos list error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to load videos"
+
+                    });
+
+                }
+
+            }
+        );
+
+        // =========================================================
+        // Watch Video
+        // =========================================================
+
+        api.registerRoute(
+            "/videos/watch/:file",
+            "GET",
+
+            async (req, res) => {
+
+                try {
+
+                    const fileName =
+                        path.basename(req.params.file);
+
+                    const filePath =
+                        path.join(
+                            uploadPath,
+                            fileName
+                        );
+
+                    if (!fs.existsSync(filePath)) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video file not found"
+
+                        });
+
+                    }
+
+                    return res.sendFile(filePath);
+
+                } catch (error) {
+
+                    console.error(
+                        "Video watch error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to load video"
+
+                    });
+
+                }
+
+            }
+        );
+
+        // =========================================================
+        // Channel Videos
+        // =========================================================
+
+        api.registerRoute(
+            "/channels/:id/videos",
+            "GET",
+
+            async (req, res) => {
+
+                try {
+
+                    await db.read();
+
+                    const videos =
+                        (db.data.videos || [])
+                        .filter(
+                            v =>
+                                String(v.channel_id) ===
+                                String(req.params.id)
+                                &&
+                                v.privacy ===
+                                "public"
+                        );
+
+                    return res.json({
+
+                        success: true,
+
+                        videos
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Channel videos error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to load channel videos"
+
+                    });
+
+                }
+
+            }
         );
 
 
+        // =========================================================
+        // Like Video
+        // =========================================================
 
-        if(!video){
+        api.registerRoute(
+            "/videos/like/:id",
+            "POST",
+            api.auth,
 
-            return res.status(404).json({
-                error:"Video not found"
-            });
+            async (req, res) => {
 
-        }
+                try {
+
+                    await db.read();
+
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
+
+                    if (!video) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    if (!Array.isArray(video.likes)) {
+
+                        video.likes = [];
+
+                    }
+
+                    if (!Array.isArray(video.dislikes)) {
+
+                        video.dislikes = [];
+
+                    }
+
+                    const userId =
+                        req.user.id;
+
+                    const alreadyLiked =
+                        video.likes.some(
+                            id =>
+                                String(id) ===
+                                String(userId)
+                        );
+
+                    if (alreadyLiked) {
+
+                        video.likes =
+                            video.likes.filter(
+                                id =>
+                                    String(id) !==
+                                    String(userId)
+                            );
+
+                    } else {
+
+                        video.likes.push(userId);
+
+                        video.dislikes =
+                            video.dislikes.filter(
+                                id =>
+                                    String(id) !==
+                                    String(userId)
+                            );
+
+                    }
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        likes:
+                            video.likes.length,
+
+                        dislikes:
+                            video.dislikes.length
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video like error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to like video"
+
+                    });
+
+                }
+
+            }
+        );
 
 
+        // =========================================================
+        // Dislike Video
+        // =========================================================
 
-        if(!video.likes){
+        api.registerRoute(
+            "/videos/dislike/:id",
+            "POST",
+            api.auth,
 
-            video.likes=[];
+            async (req, res) => {
 
-        }
+                try {
+
+                    await db.read();
+
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
+
+                    if (!video) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    if (!Array.isArray(video.likes)) {
+
+                        video.likes = [];
+
+                    }
+
+                    if (!Array.isArray(video.dislikes)) {
+
+                        video.dislikes = [];
+
+                    }
+
+                    const userId =
+                        req.user.id;
+
+                    const alreadyDisliked =
+                        video.dislikes.some(
+                            id =>
+                                String(id) ===
+                                String(userId)
+                        );
+
+                    if (alreadyDisliked) {
+
+                        video.dislikes =
+                            video.dislikes.filter(
+                                id =>
+                                    String(id) !==
+                                    String(userId)
+                            );
+
+                    } else {
+
+                        video.dislikes.push(userId);
+
+                        video.likes =
+                            video.likes.filter(
+                                id =>
+                                    String(id) !==
+                                    String(userId)
+                            );
+
+                    }
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        likes:
+                            video.likes.length,
+
+                        dislikes:
+                            video.dislikes.length
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video dislike error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to dislike video"
+
+                    });
+
+                }
+
+            }
+        );
 
 
-        if(!video.dislikes){
+        // =========================================================
+        // My Videos
+        // =========================================================
 
-            video.dislikes=[];
-
-        }
-
-
-
-        const userId =
-        req.user.id;
-
-
-
-        if(video.dislikes.includes(userId)){
-
-
-            video.dislikes =
-            video.dislikes.filter(
-                id=>id != userId
-            );
-
-
-        }else{
-
-
-            video.dislikes.push(userId);
-
-
-
-            video.likes =
-            video.likes.filter(
-                id=>id != userId
-            );
-
-
-        }
-
-
-
-        await db.write();
-
-
-
-        res.json({
-
-            success:true,
-
-            likes:video.likes.length,
-
-            dislikes:video.dislikes.length
-
-        });
-
-
-    }
-
-);
-
-
-
-        // فيديوهات المستخدم
         api.registerRoute(
             "/videos/my",
             "GET",
-
             api.auth,
 
+            async (req, res) => {
 
-            async(req,res)=>{
+                try {
 
+                    await db.read();
+                    await accountsDB.read();
 
-                await db.read();
+                    const channels =
+                        (accountsDB.data.channels || [])
+                        .filter(
+                            c =>
+                                String(c.user_id) ===
+                                String(req.user.id)
+                        );
 
-                await accountsDB.read();
+                    const ids =
+                        channels.map(
+                            c =>
+                                String(c.id)
+                        );
 
+                    const videos =
+                        (db.data.videos || [])
+                        .filter(
+                            v =>
+                                ids.includes(
+                                    String(v.channel_id)
+                                )
+                        );
 
+                    return res.json({
 
+                        success: true,
 
-                const channels =
-                accountsDB.data.channels.filter(
+                        videos
 
-                    c =>
-                    c.user_id == req.user.id
+                    });
 
-                );
+                } catch (error) {
 
+                    console.error(
+                        "My videos error:",
+                        error
+                    );
 
+                    return res.status(500).json({
 
-                const ids =
-                channels.map(
+                        success: false,
 
-                    c=>c.id
+                        error: "Failed to load my videos"
 
-                );
+                    });
 
-
-
-
-                const videos =
-                db.data.videos.filter(
-
-                    v =>
-                    ids.includes(
-                        Number(v.channel_id)
-                    )
-
-                );
-
-
-
-
-                res.json({
-
-                    success:true,
-
-                    videos
-
-                });
-
-
+                }
 
             }
-
         );
 
 
+        // =========================================================
+        // Update Video
+        // =========================================================
 
-
-
-
-
-
-
-        // تعديل فيديو
         api.registerRoute(
             "/videos/update/:id",
             "POST",
-
             api.auth,
 
+            async (req, res) => {
 
-            async(req,res)=>{
+                try {
 
+                    await db.read();
+                    await accountsDB.read();
+
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
+
+                    if (!video) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    const channel =
+                        (accountsDB.data.channels || [])
+                        .find(
+                            c =>
+                                String(c.id) ===
+                                String(video.channel_id)
+                                &&
+                                String(c.user_id) ===
+                                String(req.user.id)
+                        );
+
+                    if (!channel) {
+
+                        return res.status(403).json({
+
+                            success: false,
+
+                            error: "No permission"
+
+                        });
+
+                    }
+
+                    video.title =
+                        req.body.title ||
+                        video.title;
+
+                    video.description =
+                        req.body.description ||
+                        video.description;
+
+                    video.privacy =
+                        req.body.privacy ||
+                        video.privacy;
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        video
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video update error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to update video"
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        // =========================================================
+        // Delete Video
+        // =========================================================
+
+        api.registerRoute(
+            "/videos/delete/:id",
+            "POST",
+            api.auth,
+
+            async (req, res) => {
+
+                try {
+
+                    await db.read();
+                    await accountsDB.read();
+
+                    const videos =
+                        db.data.videos || [];
+
+                    const index =
+                        videos.findIndex(
+                            v =>
+                                String(v.id) ===
+                                String(req.params.id)
+                        );
+
+                    if (index === -1) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    const video =
+                        videos[index];
+
+                    const channel =
+                        (accountsDB.data.channels || [])
+                        .find(
+                            c =>
+                                String(c.id) ===
+                                String(video.channel_id)
+                                &&
+                                String(c.user_id) ===
+                                String(req.user.id)
+                        );
+
+                    if (!channel) {
+
+                        return res.status(403).json({
+
+                            success: false,
+
+                            error: "No permission"
+
+                        });
+
+                    }
+
+                    if (video.file) {
+
+                        const file =
+                            path.join(
+                                uploadPath,
+                                video.file
+                            );
+
+                        if (fs.existsSync(file)) {
+
+                            fs.unlinkSync(file);
+
+                        }
+
+                    }
+
+                    videos.splice(index, 1);
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        message: "Video deleted"
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video delete error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to delete video"
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        // =========================================================
+        // Search Videos
+        // =========================================================
+
+        api.registerRoute(
+            "/videos/search",
+            "GET",
+
+            async (req, res) => {
+
+                try {
+
+                    await db.read();
+                    await accountsDB.read();
+
+                    const query =
+                        String(
+                            req.query.q || ""
+                        )
+                        .trim()
+                        .toLowerCase();
+
+                    if (!query) {
+
+                        return res.json({
+
+                            success: true,
+
+                            videos: []
+
+                        });
+
+                    }
+
+                    const videos =
+                        (db.data.videos || [])
+                        .filter(
+                            video => {
+
+                                if (
+                                    video.privacy !==
+                                    "public"
+                                ) {
+
+                                    return false;
+
+                                }
+
+                                const title =
+                                    String(
+                                        video.title || ""
+                                    )
+                                    .toLowerCase();
+
+                                const description =
+                                    String(
+                                        video.description || ""
+                                    )
+                                    .toLowerCase();
+
+                                const channel =
+                                    (accountsDB.data.channels || [])
+                                    .find(
+                                        c =>
+                                            String(c.id) ===
+                                            String(video.channel_id)
+                                    );
+
+                                const channelName =
+                                    String(
+                                        channel
+                                            ? channel.name
+                                            : ""
+                                    )
+                                    .toLowerCase();
+
+                                return (
+                                    title.includes(query)
+                                    ||
+                                    description.includes(query)
+                                    ||
+                                    channelName.includes(query)
+                                );
+
+                            }
+                        )
+                        .map(video => {
+
+                            const channel =
+                                (accountsDB.data.channels || [])
+                                .find(
+                                    c =>
+                                        String(c.id) ===
+                                        String(video.channel_id)
+                                );
+
+                            return {
+
+                                ...video,
+
+                                channel_name:
+                                    channel
+                                        ? channel.name
+                                        : "Unknown",
+
+                                subscribers:
+                                    channel &&
+                                    Array.isArray(
+                                        channel.subscribers
+                                    )
+                                        ? channel.subscribers.length
+                                        : 0
+
+                            };
+
+                        });
+
+                    return res.json({
+
+                        success: true,
+
+                        videos
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Video search error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to search videos"
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        // =========================================================
+        // Comments - GET
+        // =========================================================
+
+        api.registerRoute(
+            "/videos/comments/:id",
+            "GET",
+
+            async (req, res) => {
+
+                try {
+
+                    await db.read();
+
+                    const videoId =
+                        String(
+                            req.params.id
+                        );
+
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            video =>
+                                String(video.id) ===
+                                videoId
+                        );
+
+                    if (!video) {
+
+                        return res.status(404).json({
+
+                            success: false,
+
+                            error: "Video not found"
+
+                        });
+
+                    }
+
+                    const comments =
+                        (db.data.comments || [])
+                        .filter(
+                            comment =>
+                                String(
+                                    comment.video_id
+                                ) === videoId
+                        )
+                        .sort(
+                            (a, b) =>
+                                new Date(
+                                    a.created_at
+                                ) -
+                                new Date(
+                                    b.created_at
+                                )
+                        )
+                        .map(
+                            comment => ({
+
+                                ...comment,
+
+                                video_owner_id:
+                                    video.owner_id
+
+                            })
+                        );
+
+                    return res.json({
+
+                        success: true,
+
+                        comments
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Comments GET Error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error:
+                            "Failed to load comments"
+
+                    });
+
+                }
+
+            }
+        );
+
+
+        // =========================================================
+        // Comments - POST
+        // =========================================================
+
+                api.registerRoute(
+            "/videos/comments/:id",
+            "POST",
+            api.auth,
+
+            async (req, res) => {
+
+                try {
+
+                    await db.read();
+
+                    if (
+                        !req.body ||
+                        typeof req.body.text !== "string"
+                    ) {
+
+                        return res.status(400).json({
+                            success: false,
+                            error: "Comment text is required"
+                        });
+
+                    }
+
+                    const text =
+                        req.body.text.trim();
+
+                    if (!text) {
+
+                        return res.status(400).json({
+                            success: false,
+                            error: "Comment cannot be empty"
+                        });
+
+                    }
+
+                    if (text.length > 1000) {
+
+                        return res.status(400).json({
+                            success: false,
+                            error: "Comment is too long"
+                        });
+
+                    }
+
+                    const videoId =
+                        String(req.params.id);
+
+                    const video =
+                        (db.data.videos || [])
+                        .find(
+                            v =>
+                                String(v.id) === videoId
+                        );
+
+                    if (!video) {
+
+                        return res.status(404).json({
+                            success: false,
+                            error: "Video not found"
+                        });
+
+                    }
+
+                    if (!Array.isArray(db.data.comments)) {
+
+                        db.data.comments = [];
+
+                    }
+
+                    const comment = {
+
+                        id:
+                            Date.now().toString(),
+
+                        video_id:
+                            videoId,
+
+                        user_id:
+                            req.user.id,
+
+                        username:
+                            req.user.username ||
+                            "User",
+
+                        text:
+                            text,
+
+                        created_at:
+                            new Date().toISOString()
+
+                    };
+
+                    db.data.comments.push(comment);
+
+                    await db.write();
+
+                    return res.json({
+
+                        success: true,
+
+                        comment: comment
+
+                    });
+
+                } catch (error) {
+
+                    console.error(
+                        "Comments POST Error:",
+                        error
+                    );
+
+                    return res.status(500).json({
+
+                        success: false,
+
+                        error: "Failed to add comment"
+
+                    });
+
+                }
+
+            }
+        );
+
+
+    // =========================================================
+    // Update Video
+    // =========================================================
+
+    api.registerRoute(
+        "/videos/update/:id",
+        "POST",
+        api.auth,
+
+        async (req, res) => {
+
+            try {
 
                 await db.read();
-
                 await accountsDB.read();
 
-
-
                 const video =
-                db.data.videos.find(
+                    (db.data.videos || [])
+                    .find(
+                        v =>
+                            String(v.id) ===
+                            String(req.params.id)
+                    );
 
-                    v =>
-                    v.id == req.params.id
-
-                );
-
-
-
-                if(!video){
+                if (!video) {
 
                     return res.status(404).json({
 
-                        error:"Video not found"
+                        success: false,
+
+                        error: "Video not found"
 
                     });
 
                 }
 
-
-
-
                 const channel =
-                accountsDB.data.channels.find(
+                    (accountsDB.data.channels || [])
+                    .find(
+                        c =>
+                            String(c.id) ===
+                            String(video.channel_id) &&
+                            String(c.user_id) ===
+                            String(req.user.id)
+                    );
 
-                    c =>
-                    c.id == video.channel_id &&
-                    c.user_id == req.user.id
-
-                );
-
-
-
-                if(!channel){
+                if (!channel) {
 
                     return res.status(403).json({
 
-                        error:"No permission"
+                        success: false,
+
+                        error: "No permission"
 
                     });
 
                 }
 
+                if (
+                    typeof req.body.title === "string" &&
+                    req.body.title.trim()
+                ) {
 
+                    video.title =
+                        req.body.title.trim();
 
+                }
 
-                video.title =
-                req.body.title ||
-                video.title;
+                if (
+                    typeof req.body.description === "string"
+                ) {
 
+                    video.description =
+                        req.body.description;
 
+                }
 
-                video.description =
-                req.body.description ||
-                video.description;
+                if (
+                    typeof req.body.privacy === "string" &&
+                    req.body.privacy.trim()
+                ) {
 
+                    video.privacy =
+                        req.body.privacy.trim();
 
-
-                video.privacy =
-                req.body.privacy ||
-                video.privacy;
-
-
-
+                }
 
                 await db.write();
 
+                return res.json({
 
-
-
-                res.json({
-
-                    success:true,
+                    success: true,
 
                     video
 
                 });
 
+            } catch (error) {
 
+                console.error(
+                    "Video update error:",
+                    error
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error: "Failed to update video"
+
+                });
 
             }
 
-        );
+        }
+
+    );
 
 
+    // =========================================================
+    // Delete Video
+    // =========================================================
 
+    api.registerRoute(
+        "/videos/delete/:id",
+        "POST",
+        api.auth,
 
+        async (req, res) => {
 
-
-
-
-
-
-        // حذف فيديو
-        api.registerRoute(
-            "/videos/delete/:id",
-            "POST",
-
-            api.auth,
-
-
-            async(req,res)=>{
-
+            try {
 
                 await db.read();
-
                 await accountsDB.read();
 
-
-
+                const videos =
+                    db.data.videos || [];
 
                 const index =
-                db.data.videos.findIndex(
+                    videos.findIndex(
+                        v =>
+                            String(v.id) ===
+                            String(req.params.id)
+                    );
 
-                    v =>
-                    v.id == req.params.id
-
-                );
-
-
-
-                if(index === -1){
+                if (index === -1) {
 
                     return res.status(404).json({
 
-                        error:"Video not found"
+                        success: false,
+
+                        error: "Video not found"
 
                     });
 
                 }
 
-
-
-
                 const video =
-                db.data.videos[index];
-
-
-
-
+                    videos[index];
 
                 const channel =
-                accountsDB.data.channels.find(
+                    (accountsDB.data.channels || [])
+                    .find(
+                        c =>
+                            String(c.id) ===
+                            String(video.channel_id) &&
+                            String(c.user_id) ===
+                            String(req.user.id)
+                    );
 
-                    c =>
-                    c.id == video.channel_id &&
-                    c.user_id == req.user.id
-
-                );
-
-
-
-                if(!channel){
+                if (!channel) {
 
                     return res.status(403).json({
 
-                        error:"No permission"
+                        success: false,
+
+                        error: "No permission"
 
                     });
 
                 }
 
+                if (video.file) {
 
+                    const filePath =
+                        path.join(
+                            uploadPath,
+                            video.file
+                        );
 
+                    if (
+                        fs.existsSync(filePath)
+                    ) {
 
+                        fs.unlinkSync(filePath);
 
-                const file =
-                path.join(
-
-                    uploadPath,
-
-                    video.file
-
-                );
-
-
-
-
-                if(fs.existsSync(file)){
-
-                    fs.unlinkSync(file);
+                    }
 
                 }
 
-
-
-
-                db.data.videos.splice(
-                    index,
-                    1
-                );
-
-
+                videos.splice(index, 1);
 
                 await db.write();
 
+                return res.json({
 
+                    success: true,
 
-
-                res.json({
-
-                    success:true,
-
-                    message:"Video deleted"
+                    message: "Video deleted"
 
                 });
 
+            } catch (error) {
 
+                console.error(
+                    "Video delete error:",
+                    error
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error: "Failed to delete video"
+
+                });
 
             }
 
-        );
+        }
+
+    );
 
 
+    // =========================================================
+    // Search Videos
+    // =========================================================
 
+    api.registerRoute(
+        "/videos/search",
+        "GET",
 
+        async (req, res) => {
 
+            try {
 
+                await db.read();
+                await accountsDB.read();
 
+                const query =
+                    String(
+                        req.query.q || ""
+                    )
+                    .trim()
+                    .toLowerCase();
 
-        // تشغيل الفيديو مع Range Requests
-        api.registerRoute(
-            "/videos/watch/:file",
-            "GET",
+                if (!query) {
 
+                    return res.json({
 
-            async(req,res)=>{
+                        success: true,
 
-
-                const filePath =
-                path.join(
-
-                    uploadPath,
-
-                    req.params.file
-
-                );
-
-
-
-                if(!fs.existsSync(filePath)){
-
-                    return res.status(404).end();
-
-                }
-
-
-
-
-                const size =
-                fs.statSync(filePath).size;
-
-
-
-                const range =
-                req.headers.range;
-
-
-
-                if(!range){
-
-
-                    res.writeHead(200,{
-
-                        "Content-Length":size,
-
-                        "Content-Type":"video/mp4"
+                        videos: []
 
                     });
 
-
-
-                    fs.createReadStream(filePath)
-                    .pipe(res);
-
-
-                    return;
-
                 }
 
+                const channels =
+                    accountsDB.data.channels || [];
 
+                const videos =
+                    (db.data.videos || [])
+                    .filter(
+                        video =>
+                            video.privacy === "public"
+                    )
+                    .filter(video => {
 
+                        const title =
+                            String(
+                                video.title || ""
+                            )
+                            .toLowerCase();
 
-                const parts =
-                range.replace(
-                    /bytes=/,
-                    ""
-                ).split("-");
+                        const description =
+                            String(
+                                video.description || ""
+                            )
+                            .toLowerCase();
 
+                        const channel =
+                            channels.find(
+                                c =>
+                                    String(c.id) ===
+                                    String(video.channel_id)
+                            );
 
+                        const channelName =
+                            String(
+                                channel
+                                    ? channel.name
+                                    : ""
+                            )
+                            .toLowerCase();
 
-                const start =
-                parseInt(parts[0]);
+                        return (
+                            title.includes(query) ||
+                            description.includes(query) ||
+                            channelName.includes(query)
+                        );
 
+                    })
+                    .map(video => {
 
+                        const channel =
+                            channels.find(
+                                c =>
+                                    String(c.id) ===
+                                    String(video.channel_id)
+                            );
 
-                const end =
-                parts[1]
-                ? parseInt(parts[1])
-                : size - 1;
+                        return {
 
+                            ...video,
 
+                            channel_name:
+                                channel
+                                    ? channel.name
+                                    : "Unknown",
 
-                const chunk =
-                end-start+1;
+                            subscribers:
+                                channel &&
+                                Array.isArray(
+                                    channel.subscribers
+                                )
+                                    ? channel.subscribers.length
+                                    : 0
 
+                        };
 
+                    });
 
+                return res.json({
 
-                res.writeHead(206,{
+                    success: true,
 
-                    "Content-Range":
-                    `bytes ${start}-${end}/${size}`,
-
-                    "Accept-Ranges":"bytes",
-
-                    "Content-Length":chunk,
-
-                    "Content-Type":"video/mp4"
+                    videos
 
                 });
 
+            } catch (error) {
 
+                console.error(
+                    "Video search error:",
+                    error
+                );
 
-                fs.createReadStream(
+                return res.status(500).json({
 
-                    filePath,
+                    success: false,
 
-                    {
-                        start,
-                        end
-                    }
+                    error: "Failed to search videos"
 
-                ).pipe(res);
-
-
+                });
 
             }
 
-        );
+        }
+
+    );
 
 
+    // =========================================================
+    // Get Comments
+    // =========================================================
 
+    api.registerRoute(
+        "/videos/comments/:id",
+        "GET",
+
+        async (req, res) => {
+
+            try {
+
+                await db.read();
+
+                const videoId =
+                    String(req.params.id);
+
+                const video =
+                    (db.data.videos || [])
+                    .find(
+                        v =>
+                            String(v.id) ===
+                            videoId
+                    );
+
+                if (!video) {
+
+                    return res.status(404).json({
+
+                        success: false,
+
+                        error: "Video not found"
+
+                    });
+
+                }
+
+                const comments =
+                    Array.isArray(
+                        db.data.comments
+                    )
+                        ? db.data.comments
+                            .filter(
+                                comment =>
+                                    String(
+                                        comment.video_id
+                                    ) === videoId
+                            )
+                            .sort(
+                                (a, b) =>
+                                    new Date(
+                                        a.created_at
+                                    ).getTime() -
+                                    new Date(
+                                        b.created_at
+                                    ).getTime()
+                            )
+                            .map(comment => ({
+
+                                ...comment,
+
+                                video_owner_id:
+                                    video.owner_id
+
+                            }))
+                        : [];
+
+                return res.json({
+
+                    success: true,
+
+                    comments
+
+                });
+
+            } catch (error) {
+
+                console.error(
+                    "Comments GET Error:",
+                    error
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error: "Failed to load comments"
+
+                });
+
+            }
+
+        }
+
+    );
+
+
+    // =========================================================
+    // Add Comment
+    // =========================================================
+
+    api.registerRoute(
+        "/videos/comments/:id",
+        "POST",
+        api.auth,
+
+        async (req, res) => {
+
+            try {
+
+                await db.read();
+
+                if (
+                    !req.body ||
+                    typeof req.body.text !== "string"
+                ) {
+
+                    return res.status(400).json({
+
+                        success: false,
+
+                        error: "Comment text is required"
+
+                    });
+
+                }
+
+                const text =
+                    req.body.text.trim();
+
+                if (!text) {
+
+                    return res.status(400).json({
+
+                        success: false,
+
+                        error: "Comment cannot be empty"
+
+                    });
+
+                }
+
+                if (text.length > 1000) {
+
+                    return res.status(400).json({
+
+                        success: false,
+
+                        error: "Comment is too long"
+
+                    });
+
+                }
+
+                const videoId =
+                    String(req.params.id);
+
+                const video =
+                    (db.data.videos || [])
+                    .find(
+                        v =>
+                            String(v.id) ===
+                            videoId
+                    );
+
+                if (!video) {
+
+                    return res.status(404).json({
+
+                        success: false,
+
+                        error: "Video not found"
+
+                    });
+
+                }
+
+                if (
+                    !Array.isArray(
+                        db.data.comments
+                    )
+                ) {
+
+                    db.data.comments = [];
+
+                }
+
+                const comment = {
+
+                    id:
+                        Date.now().toString(),
+
+                    video_id:
+                        videoId,
+
+                    user_id:
+                        req.user.id,
+
+                    username:
+                        req.user.username ||
+                        "User",
+
+                    text,
+
+                    created_at:
+                        new Date().toISOString()
+
+                };
+
+                db.data.comments.push(
+                    comment
+                );
+
+                await db.write();
+
+                return res.json({
+
+                    success: true,
+
+                    comment
+
+                });
+
+            } catch (error) {
+
+                console.error(
+                    "Comments POST Error:",
+                    error
+                );
+
+                return res.status(500).json({
+
+                    success: false,
+
+                    error: "Failed to add comment"
+
+                });
+
+            }
+
+        }
+
+    );
+
+
+    // =========================================================
+    // Delete Comment
+    // =========================================================
+
+    api.registerRoute(
+    "/videos/comments/:commentId",
+    "DELETE",
+    api.auth,
+
+    async (req, res) => {
+
+        try {
+
+            await db.read();
+
+            const commentId =
+                String(req.params.commentId);
+
+            const comments =
+                Array.isArray(db.data.comments)
+                    ? db.data.comments
+                    : [];
+
+            const index =
+                comments.findIndex(
+                    comment =>
+                        String(comment.id) ===
+                        commentId
+                );
+
+            if (index === -1) {
+
+                return res.status(404).json({
+
+                    success: false,
+
+                    error: "Comment not found"
+
+                });
+
+            }
+
+            const comment =
+                comments[index];
+
+            const userId =
+                String(req.user.id);
+
+            const commentOwner =
+                String(comment.user_id) ===
+                userId;
+
+            if (!commentOwner) {
+
+                return res.status(403).json({
+
+                    success: false,
+
+                    error: "No permission"
+
+                });
+
+            }
+
+            comments.splice(index, 1);
+
+            db.data.comments =
+                comments;
+
+            await db.write();
+
+            return res.json({
+
+                success: true,
+
+                message: "Comment deleted"
+
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Comments DELETE Error:",
+                error
+            );
+
+            return res.status(500).json({
+
+                success: false,
+
+                error: "Failed to delete comment"
+
+            });
+
+        }
 
     }
+);
+
+
+    // =========================================================
+    // Plugin Finished
+    // =========================================================
+
+    console.log(
+        "Videos System activated successfully"
+    );
+
+}
 
 };

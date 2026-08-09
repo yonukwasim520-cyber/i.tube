@@ -1,15 +1,9 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html><html><head><meta name="google-site-verification" content="45gxYl8vF415DmDbZKn5YJpwm7lfrt-HMHY6vKLZfbI" />
+<meta name="google-site-verification" content="dXM2gbh2OB6VfqpGBFb1ukklfdxH60y3PnuqiZj1pWM" /><title>i.Tube</title><style>
 
-<head>
-
-<meta name="google-site-verification" content="45gxYl8vF415DmDbZKn5YJpwm7lfrt-HMHY6vKLZfbI" />
-
-<meta name="google-site-verification" content="dXM2gbh2OB6VfqpGBFb1ukklfdxH60y3PnuqiZj1pWM" />
-
-<title>i.Tube</title>
-
-<style>
+*{
+    box-sizing:border-box;
+}
 
 body{
     margin:0;
@@ -17,7 +11,6 @@ body{
     background:#111;
     color:white;
 }
-
 
 header{
     display:flex;
@@ -27,13 +20,11 @@ header{
     background:#181818;
 }
 
-
 .logo{
     font-size:30px;
     font-weight:bold;
     color:red;
 }
-
 
 button{
     padding:12px 20px;
@@ -43,24 +34,20 @@ button{
     margin:5px;
 }
 
-
 .login{
     background:#333;
     color:white;
 }
-
 
 .register{
     background:red;
     color:white;
 }
 
-
 .upload{
     background:#2563eb;
     color:white;
 }
-
 
 .logout{
     background:#555;
@@ -72,734 +59,1035 @@ button{
     color:white;
 }
 
-
 .like{
     background:#16a34a;
     color:white;
 }
-
 
 .dislike{
     background:#dc2626;
     color:white;
 }
 
-
-
-.container{
-
-    text-align:center;
-    padding:50px 20px;
-
+.search-box{
+    display:flex;
+    gap:8px;
+    max-width:700px;
+    margin:25px auto;
 }
 
+.search-box input{
+    flex:1;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#222;
+    color:white;
+    font-size:16px;
+    outline:none;
+}
 
+.search-box input:focus{
+    outline:2px solid red;
+}
+
+.search-box button{
+    background:red;
+    color:white;
+    margin:0;
+}
+
+.no-results{
+    opacity:.7;
+    padding:20px;
+    background:#222;
+    border-radius:12px;
+}
+
+.search-loading{
+    padding:20px;
+    opacity:.7;
+}
+
+.container{
+    text-align:center;
+    padding:30px 20px;
+}
 
 .card{
-
     background:#222;
     padding:20px;
     margin:20px auto;
     border-radius:15px;
     max-width:600px;
-
 }
 
-
-
 .video-card{
-
     background:#222;
     padding:15px;
     margin:15px auto;
     border-radius:15px;
     max-width:600px;
-
+    text-align:left;
 }
 
+.video-card h3{
+    margin-bottom:10px;
+}
+
+.video-card p{
+    opacity:.85;
+}
 
 video{
-
     width:100%;
     border-radius:10px;
-
 }
 
+.channel-name{
+    color:#aaa;
+    margin:8px 0;
+}
 
-</style>
-
-</head>
-
-
-<body>
-
-
-<header>
-
-
-<div class="logo">
+</style></head><body><header><div class="logo">
 i.Tube
-</div>
-
-
-<div id="menu">
-
-
-<button class="login"
+</div><div id="menu"><button
+class="login"
 onclick="location.href='login.html'">
-
 Login
-
 </button>
 
-
-<button class="register"
+<button
+class="register"
 onclick="location.href='register.html'">
-
 Create Account
-
 </button>
 
-
-</div>
-
-
-</header>
-
-
-
-<div class="container">
-
-
-<h1>
+</div></header><div class="container"><h1>
 Welcome to i.Tube
-</h1>
-
-
-<p>
+</h1><p>
 Watch and share videos
-</p>
+</p><div class="search-box"><input
+id="searchInput"
+type="search"
+placeholder="Search videos or channels..."
+autocomplete="off"
+onkeydown="if(event.key==='Enter') searchVideos()">
 
-
-
-<div class="card">
-
-
-<h2 id="status">
-Guest
-</h2>
-
-
-<button class="upload"
-onclick="location.href='upload.html'">
-
-Upload Video
-
+<button
+onclick="searchVideos()">
+🔍 Search
 </button>
 
+</div><div class="card"><h2 id="status">
+Guest
+</h2><button
+class="upload"
+onclick="location.href='upload.html'">
+Upload Video
+</button>
 
-</div>
-
-
-
-<h2>
+</div><h2 id="videoSectionTitle">
 Trending Videos
-</h2>
-
-
-<div id="videos">
-
+</h2><div id="videos">
 Loading videos...
+</div></div><script>
 
-</div>
-
-
-
-</div>
+let currentUser = null;
 
 
-
-
-
-<script>
-
+/* ===============================
+   Check User
+=============================== */
 
 async function checkUser(){
 
-
     const token =
-    localStorage.token;
+        localStorage.token;
 
 
     if(!token){
+
+        await loadVideos();
 
         return;
 
     }
 
 
-
     try{
 
-
         const res =
-        await fetch("/accounts/me",{
-
-            headers:{
-
-                "Authorization":
-                "Bearer "+token
-
-            }
-
-        });
-
+            await fetch(
+                "/accounts/me",
+                {
+                    headers:{
+                        "Authorization":
+                            "Bearer " +
+                            token
+                    }
+                }
+            );
 
 
         const data =
-        await res.json();
-
+            await res.json();
 
 
         if(data.success){
 
-
-            document.getElementById("status")
-            .innerHTML =
-            "Welcome "+data.user.username;
+            currentUser =
+                data.user;
 
 
+            document.getElementById(
+                "status"
+            ).innerHTML =
+                "Welcome " +
+                escapeHtml(
+                    data.user.username
+                );
 
-            document.getElementById("menu").innerHTML = `
 
+            document.getElementById(
+                "menu"
+            ).innerHTML = `
 
-<button class="upload"
+<button
+class="upload"
 onclick="location.href='upload.html'">
-
 Upload Video
-
 </button>
 
-
-<button class="upload"
+<button
+class="upload"
 onclick="location.href='shorts.html'">
-
 Shorts
-
 </button>
 
-
-<button class="upload"
-onclick="location.href='edit-channel.html?id=${data.user.channel_id}'">
-
+<button
+class="upload"
+onclick="location.href='edit-channel.html?id=${encodeURIComponent(
+    data.user.channel_id
+)}'">
 Edit Channel
-
 </button>
 
-
-
-<button class="logout"
+<button
+class="logout"
 onclick="logout()">
-
 Logout
-
 </button>
 
-
-<button class="delete"
+<button
+class="delete"
 onclick="location.href='delete-account.html'">
-
 Delete Account
-
 </button>
-
 
 `;
-
 
         }
 
 
+        await loadVideos();
 
-    }catch(e){
 
-        console.log(e);
+    }catch(error){
+
+        console.log(
+            "checkUser error:",
+            error
+        );
+
+
+        await loadVideos();
 
     }
-
 
 }
 
 
-
-
+/* ===============================
+   Logout
+=============================== */
 
 function logout(){
 
-    localStorage.removeItem("token");
+    localStorage.removeItem(
+        "token"
+    );
+
+
+    currentUser =
+        null;
+
 
     location.reload();
 
 }
 
 
+/* ===============================
+   Open Channel
+=============================== */
 
 function openChannel(id){
 
     location.href =
-    "channel.html?id="+id;
+        "channel.html?id=" +
+        encodeURIComponent(id);
 
 }
 
 
+/* ===============================
+   Load Videos
+=============================== */
 
 async function loadVideos(){
 
-
     const box =
-    document.getElementById("videos");
+        document.getElementById(
+            "videos"
+        );
 
+
+    const title =
+        document.getElementById(
+            "videoSectionTitle"
+        );
 
 
     try{
 
-
         const res =
-        await fetch("/videos/list");
-
+            await fetch(
+                "/videos/list"
+            );
 
 
         const videos =
-        await res.json();
+            await res.json();
 
 
         const normalVideos =
-        videos.filter(
-        v=>v.type !== "short"
-         );
+            Array.isArray(videos)
+            ? videos.filter(
+                v =>
+                    v.type !== "short"
+            )
+            : [];
 
 
-        if(videos.length===0){
+        title.innerHTML =
+            "Trending Videos";
 
+
+        box.innerHTML =
+            "";
+
+
+        if(
+            normalVideos.length === 0
+        ){
 
             box.innerHTML =
-            "No videos yet";
-
+                "No videos yet";
 
             return;
 
         }
 
 
-
-
-        box.innerHTML="";
-
-
-
-        normalVideos.forEach(video=>{
-
-
-
-            const div =
-            document.createElement("div");
-
-
-
-            div.className =
-            "video-card";
-
-
-
-            div.innerHTML = `
-
-
-            <video controls>
-
-            <source src="/videos/watch/${video.file}">
-
-            </video>
-
-
-
-            <h3>
-${video.title}
-</h3>
-
-<button onclick="openChannel(${video.channel_id})">
-
-Visit Channel
-
-</button>
-
-
-<button onclick="subscribe(${video.channel_id})">
-
-Subscribe
-
-</button>
-
-<span id="subscribers-${video.channel_id}">
-</span>
-
-
-            <p>
-
-            ${video.description}
-
-            </p>
-
-
-
-            <button class="like"
-onclick="likeVideo(${video.id})">
-
-👍 <span id="likes-${video.id}">
-${video.likes ? video.likes.length : 0}
-</span>
-
-</button>
-
-
-
-
-            <button class="dislike"
-onclick="dislikeVideo(${video.id})">
-
-👎 <span id="dislikes-${video.id}">
-${video.dislikes ? video.dislikes.length : 0}
-</span>
-
-</button>
-
-
-
-            `;
-
-
-
-            box.appendChild(div);
-
-
-
-        });
-
-
-
-    }catch(e){
-
-
-        console.log(e);
-
-
-        box.innerHTML =
-        "Error loading videos";
-
-
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-async function likeVideo(id){
-
-    const token = localStorage.token;
-
-    if(!token){
-        alert("Login required");
-        return;
-    }
-
-
-    const res =
-    await fetch("/videos/like/"+id,{
-
-        method:"POST",
-
-        headers:{
-            Authorization:
-            "Bearer "+token
-        }
-
-    });
-
-
-    const data =
-    await res.json();
-
-
-    if(data.success){
-
-        document.getElementById(
-            "likes-"+id
-        ).innerHTML =
-        data.likes;
-
-    }else{
-
-        alert(data.error);
-
-    }
-
-}
-
-
-
-
-
-async function dislikeVideo(id){
-
-    const token = localStorage.token;
-
-    if(!token){
-        alert("Login required");
-        return;
-    }
-
-
-    const res =
-    await fetch("/videos/dislike/"+id,{
-
-        method:"POST",
-
-        headers:{
-            Authorization:
-            "Bearer "+token
-        }
-
-    });
-
-
-    const data =
-    await res.json();
-
-
-    if(data.success){
-
-        document.getElementById(
-            "dislikes-"+id
-        ).innerHTML =
-        data.dislikes;
-
-    }else{
-
-        alert(data.error);
-
-    }
-
-}
-
-
-
-async function deleteAccount(){
-
-    const password =
-    prompt("Enter your password");
-
-
-    if(!password){
-        return;
-    }
-
-
-    let code = null;
-
-
-    try{
-
-        const userRes =
-        await fetch("/accounts/me",{
-
-            headers:{
-                "Authorization":
-                "Bearer "+localStorage.token
-            }
-
-        });
-
-
-        const userData =
-        await userRes.json();
-
-
-
-        if(
-            userData.success &&
-            userData.user.twoFA === true
-        ){
-
-            code =
-            prompt("Enter your authentication code");
-
-
-            if(!code){
-                return;
-            }
-
-        }
-
+        normalVideos.forEach(
+            renderVideo
+        );
 
 
     }catch(error){
 
-        alert("Failed to check account security");
-        return;
-
-    }
-
-
-
-    const confirmDelete =
-    confirm(
-        "Are you sure you want to delete your account?"
-    );
-
-
-    if(!confirmDelete){
-        return;
-    }
-
-
-
-    const res =
-    await fetch("/accounts/delete",{
-
-        method:"POST",
-
-        headers:{
-
-            "Content-Type":
-            "application/json",
-
-            "Authorization":
-            "Bearer "+localStorage.token
-
-        },
-
-
-        body:JSON.stringify({
-
-            password:password,
-
-            code:code
-
-        })
-
-    });
-
-
-
-    const data =
-    await res.json();
-
-
-
-    if(data.success){
-
-        alert(
-            "Account deleted successfully"
+        console.log(
+            "loadVideos error:",
+            error
         );
 
 
-        localStorage.removeItem("token");
-
-        location.reload();
-
-
-    }else{
-
-        alert(data.error);
+        box.innerHTML =
+            "Error loading videos";
 
     }
-
 
 }
 
 
-async function subscribe(id){
+/* ===============================
+   Render Video
+=============================== */
+
+function renderVideo(video){
+
+    const box =
+        document.getElementById(
+            "videos"
+        );
+
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+
+    div.className =
+        "video-card";
+
+
+    const videoId =
+        Number(video.id);
+
+
+    const channelId =
+        Number(video.channel_id);
+
+
+    const likes =
+        Array.isArray(video.likes)
+        ? video.likes.length
+        : 0;
+
+
+    const dislikes =
+        Array.isArray(video.dislikes)
+        ? video.dislikes.length
+        : 0;
+
+
+    div.innerHTML = `
+
+<video controls>
+
+<source
+src="/videos/watch/${encodeURIComponent(
+    video.file
+)}">
+
+</video>
+
+
+<h3>
+${escapeHtml(
+    video.title || ""
+)}
+</h3>
+
+
+<div class="channel-name">
+
+Channel:
+${escapeHtml(
+    video.channel_name ||
+    "Unknown"
+)}
+
+</div>
+
+
+<button
+onclick="openChannel(${channelId})">
+Visit Channel
+</button>
+
+
+<button
+onclick="subscribe(${channelId})">
+Subscribe
+</button>
+
+
+<span id="subscribers-${channelId}">
+${
+    video.subscribers
+    ? " Subscribers: " +
+      Number(video.subscribers)
+    : ""
+}
+</span>
+
+
+<p>
+${escapeHtml(
+    video.description ||
+    ""
+)}
+</p>
+
+
+<button
+class="like"
+onclick="likeVideo(${videoId})">
+
+👍
+
+<span id="likes-${videoId}">
+${likes}
+</span>
+
+</button>
+
+
+<button
+class="dislike"
+onclick="dislikeVideo(${videoId})">
+
+👎
+
+<span id="dislikes-${videoId}">
+${dislikes}
+</span>
+
+</button>
+
+
+<button
+onclick="copyVideoLink(${videoId})">
+🔗 Copy Link
+</button>
+
+`;
+
+    box.appendChild(
+        div
+    );
+
+}
+
+
+/* ===============================
+   Search Videos
+=============================== */
+
+async function searchVideos(){
+
+    const input =
+        document.getElementById(
+            "searchInput"
+        );
+
+
+    const box =
+        document.getElementById(
+            "videos"
+        );
+
+
+    const title =
+        document.getElementById(
+            "videoSectionTitle"
+        );
+
+
+    const query =
+        input.value.trim();
+
+
+    if(!query){
+
+        await loadVideos();
+
+        return;
+
+    }
+
+
+    title.innerHTML =
+        "Search Results";
+
+
+    box.innerHTML = `
+
+<div class="search-loading">
+Searching...
+</div>
+
+`;
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/videos/search?q=" +
+                encodeURIComponent(
+                    query
+                )
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(!data.success){
+
+            box.innerHTML =
+                "Search failed";
+
+            return;
+
+        }
+
+
+        const videos =
+            Array.isArray(
+                data.videos
+            )
+            ? data.videos.filter(
+                v =>
+                    v.type !== "short"
+            )
+            : [];
+
+
+        box.innerHTML =
+            "";
+
+
+        if(videos.length === 0){
+
+            box.innerHTML = `
+
+<div class="no-results">
+
+No videos found for:
+
+<strong>
+${escapeHtml(query)}
+</strong>
+
+</div>
+
+`;
+
+            return;
+
+        }
+
+
+        videos.forEach(
+            renderVideo
+        );
+
+
+    }catch(error){
+
+        console.log(
+            "search error:",
+            error
+        );
+
+
+        box.innerHTML =
+            "Error searching videos";
+
+    }
+
+}
+
+
+/* ===============================
+   Like
+=============================== */
+
+async function likeVideo(id){
 
     const token =
-    localStorage.token;
+        localStorage.token;
 
 
     if(!token){
 
-        alert("Login required");
+        alert(
+            "Login required"
+        );
 
         return;
 
     }
 
 
+    try{
 
-    const res =
-    await fetch(
+        const res =
+            await fetch(
+                "/videos/like/" +
+                id,
+                {
+                    method:"POST",
 
-        "/channels/subscribe/"+id,
+                    headers:{
+                        "Authorization":
+                            "Bearer " +
+                            token
+                    }
+                }
+            );
 
-        {
 
-            method:"POST",
+        const data =
+            await res.json();
 
-            headers:{
 
-                "Authorization":
-                "Bearer "+token
+        if(data.success){
+
+            const likes =
+                document.getElementById(
+                    "likes-" + id
+                );
+
+
+            const dislikes =
+                document.getElementById(
+                    "dislikes-" + id
+                );
+
+
+            if(likes){
+
+                likes.innerHTML =
+                    data.likes;
 
             }
 
+
+            if(dislikes){
+
+                dislikes.innerHTML =
+                    data.dislikes;
+
+            }
+
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to like video"
+            );
+
         }
 
-    );
 
+    }catch(error){
 
-
-    const data =
-    await res.json();
-
-
-
-    if(data.success){
-
-        const counter =
-        document.getElementById(
-            "subscribers-"+id
+        console.error(
+            "Like error:",
+            error
         );
 
 
-        if(counter){
-
-            counter.innerHTML =
-            " Subscribers: "+data.subscribers;
-
-        }
-
-    }else{
-
-        alert(data.error);
+        alert(
+            "Error liking video"
+        );
 
     }
 
 }
 
 
+/* ===============================
+   Dislike
+=============================== */
+
+async function dislikeVideo(id){
+
+    const token =
+        localStorage.token;
+
+
+    if(!token){
+
+        alert(
+            "Login required"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/videos/dislike/" +
+                id,
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Authorization":
+                            "Bearer " +
+                            token
+                    }
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(data.success){
+
+            const likes =
+                document.getElementById(
+                    "likes-" + id
+                );
+
+
+            const dislikes =
+                document.getElementById(
+                    "dislikes-" + id
+                );
+
+
+            if(likes){
+
+                likes.innerHTML =
+                    data.likes;
+
+            }
+
+
+            if(dislikes){
+
+                dislikes.innerHTML =
+                    data.dislikes;
+
+            }
+
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to dislike video"
+            );
+
+        }
+
+
+    }catch(error){
+
+        console.error(
+            "Dislike error:",
+            error
+        );
+
+
+        alert(
+            "Error disliking video"
+        );
+
+    }
+
+}
+
+
+/* ===============================
+   Subscribe
+=============================== */
+
+async function subscribe(id){
+
+    const token =
+        localStorage.token;
+
+
+    if(!token){
+
+        alert(
+            "Login required"
+        );
+
+        return;
+
+    }
+
+
+    try{
+
+        const res =
+            await fetch(
+                "/channels/subscribe/" +
+                id,
+                {
+                    method:"POST",
+
+                    headers:{
+                        "Authorization":
+                            "Bearer " +
+                            token
+                    }
+                }
+            );
+
+
+        const data =
+            await res.json();
+
+
+        if(data.success){
+
+            const subscribers =
+                document.getElementById(
+                    "subscribers-" + id
+                );
+
+
+            if(
+                subscribers &&
+                data.subscribers !== undefined
+            ){
+
+                subscribers.innerHTML =
+                    " Subscribers: " +
+                    Number(
+                        data.subscribers
+                    );
+
+            }
+
+
+        }else{
+
+            alert(
+                data.error ||
+                "Failed to subscribe"
+            );
+
+        }
+
+
+    }catch(error){
+
+        console.error(
+            "Subscribe error:",
+            error
+        );
+
+
+        alert(
+            "Error subscribing"
+        );
+
+    }
+
+}
+
+
+/* ===============================
+   Copy Video Link
+=============================== */
+
+async function copyVideoLink(id){
+
+    const link =
+        window.location.origin +
+        "/watch.html?id=" +
+        encodeURIComponent(id);
+
+    try{
+
+        await navigator.clipboard.writeText(link);
+
+        alert("Video link copied!");
+
+    }catch(error){
+
+        const textarea =
+            document.createElement("textarea");
+
+        textarea.value = link;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+
+        try{
+
+            document.execCommand("copy");
+
+            alert("Video link copied!");
+
+        }catch(copyError){
+
+            console.error(
+                "Copy failed:",
+                copyError
+            );
+
+            alert(
+                "Could not copy the video link."
+            );
+
+        }finally{
+
+            document.body.removeChild(
+                textarea
+            );
+
+        }
+
+    }
+
+}
+
+
+/* ===============================
+   Escape HTML
+=============================== */
+
+function escapeHtml(value){
+
+    return String(value)
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+/* ===============================
+   Start
+=============================== */
+
 checkUser();
 
-loadVideos();
-
-
-</script>
-
-
-</body>
-
-</html>
+</script></body></html>

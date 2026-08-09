@@ -8,39 +8,31 @@
 <style>
 
 body{
-
     margin:0;
     font-family:Arial;
     background:#111;
     color:white;
-
 }
 
-
 header{
-
     background:#181818;
     padding:20px;
     font-size:28px;
     font-weight:bold;
     color:red;
-
 }
 
-
 .container{
-
     max-width:500px;
     margin:50px auto;
     background:#222;
     padding:25px;
     border-radius:15px;
-
 }
 
-
-input,textarea,select{
-
+input,
+textarea,
+select{
     width:100%;
     padding:12px;
     margin:10px 0;
@@ -48,19 +40,13 @@ input,textarea,select{
     border-radius:8px;
     background:#333;
     color:white;
-
 }
-
 
 textarea{
-
     height:100px;
-
 }
 
-
 button{
-
     width:100%;
     padding:14px;
     background:red;
@@ -69,24 +55,63 @@ button{
     border-radius:10px;
     cursor:pointer;
     font-size:18px;
-
 }
 
+button:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+}
 
-#result{
+#progress{
+
+    width:100%;
+    height:18px;
+
+    background:#333;
+
+    border-radius:20px;
+
+    overflow:hidden;
 
     margin-top:20px;
 
+    display:none;
+
 }
 
+#bar{
+
+    width:0%;
+
+    height:100%;
+
+    background:#16a34a;
+
+    transition:.15s;
+
+}
+
+#percent{
+
+    text-align:center;
+
+    margin-top:10px;
+
+    font-weight:bold;
+
+}
+
+#result{
+
+    margin-top:15px;
+
+}
 
 </style>
 
 </head>
 
-
 <body>
-
 
 <header>
 
@@ -94,28 +119,17 @@ i.Tube
 
 </header>
 
-
-
 <div class="container">
 
+<h2>Upload Video</h2>
 
-<h2>
-Upload Video
-</h2>
-
-
-
-<input 
+<input
 id="title"
 placeholder="Video title">
-
-
 
 <textarea
 id="description"
 placeholder="Description"></textarea>
-
-
 
 <select id="privacy">
 
@@ -123,15 +137,11 @@ placeholder="Description"></textarea>
 Public
 </option>
 
-
 <option value="private">
 Private
 </option>
 
-
 </select>
-
-
 
 <select id="type">
 
@@ -139,198 +149,214 @@ Private
 Normal Video
 </option>
 
-
 <option value="short">
 Shorts
 </option>
 
-
 </select>
-
-
 
 <input
 id="video"
 type="file"
 accept="video/*">
 
-
-
-<button onclick="upload()">
+<button
+id="uploadBtn"
+onclick="upload()">
 
 Upload
 
 </button>
 
+<div id="progress">
 
-
-<p id="result"></p>
-
-
+<div id="bar"></div>
 
 </div>
 
+<div id="percent"></div>
 
+<p id="result"></p>
 
-
+</div>
 
 <script>
 
+function upload(){
 
-async function upload(){
-
-
-let token =
+const token=
 localStorage.token;
-
-
 
 if(!token){
 
-
-document.getElementById("result").innerHTML =
+document.getElementById("result").innerHTML=
 "Please login first";
-
 
 return;
 
-
 }
 
-
-
-
-let file =
+const file=
 document.getElementById("video").files[0];
-
-
 
 if(!file){
 
-
-document.getElementById("result").innerHTML =
+document.getElementById("result").innerHTML=
 "Select video";
-
 
 return;
 
-
 }
 
-
-
-
-
-let form =
+const form=
 new FormData();
-
-
 
 form.append(
 "video",
 file
 );
 
-
-
 form.append(
 "title",
 document.getElementById("title").value
 );
-
-
 
 form.append(
 "description",
 document.getElementById("description").value
 );
 
-
-
 form.append(
 "privacy",
 document.getElementById("privacy").value
 );
-
-
 
 form.append(
 "type",
 document.getElementById("type").value
 );
 
+const xhr=
+new XMLHttpRequest();
 
+xhr.open(
+"POST",
+"/videos/upload",
+true
+);
 
-
-
-
-let res =
-await fetch("/videos/upload",{
-
-
-method:"POST",
-
-
-
-headers:{
-
-
-"Authorization":
+xhr.setRequestHeader(
+"Authorization",
 "Bearer "+token
+);
 
+document.getElementById("progress").style.display="block";
 
-},
+document.getElementById("bar").style.width="0%";
 
+document.getElementById("percent").innerHTML="0%";
 
+document.getElementById("uploadBtn").disabled=true;
 
-body:form
+document.getElementById("uploadBtn").innerHTML=
+"Uploading...";
 
+xhr.upload.onprogress=function(e){
 
+if(e.lengthComputable){
 
-});
+const percent=
+Math.round(
+(e.loaded/e.total)*100
+);
 
+document.getElementById("bar").style.width=
+percent+"%";
 
+document.getElementById("percent").innerHTML=
+percent+"%";
 
+document.getElementById("uploadBtn").innerHTML=
+"Uploading "+percent+"%";
 
+}
 
-let data =
-await res.json();
+};
 
+xhr.onload=function(){
 
+document.getElementById("uploadBtn").disabled=false;
 
+document.getElementById("uploadBtn").innerHTML=
+"Upload";
 
-document.getElementById("result").innerHTML =
-JSON.stringify(data);
+if(xhr.status===200){
 
-
-
-
+const data=
+JSON.parse(xhr.responseText);
 
 if(data.success){
 
+document.getElementById("bar").style.width="100%";
+
+document.getElementById("percent").innerHTML=
+"100%";
+
+document.getElementById("result").style.color=
+"#22c55e";
+
+document.getElementById("result").innerHTML=
+"✅ Upload completed";
 
 setTimeout(()=>{
 
-
 location.href="index.html";
-
 
 },1500);
 
+}else{
+
+document.getElementById("result").style.color=
+"#ef4444";
+
+document.getElementById("result").innerHTML=
+data.error;
 
 }
 
+}else{
 
+document.getElementById("result").style.color=
+"#ef4444";
 
+document.getElementById("result").innerHTML=
+"Upload failed";
 
 }
 
+};
 
+xhr.onerror=function(){
+
+document.getElementById("uploadBtn").disabled=false;
+
+document.getElementById("uploadBtn").innerHTML=
+"Upload";
+
+document.getElementById("result").style.color=
+"#ef4444";
+
+document.getElementById("result").innerHTML=
+"Network error";
+
+};
+
+xhr.send(form);
+
+}
 
 </script>
 
-
 </body>
-
 
 </html>
